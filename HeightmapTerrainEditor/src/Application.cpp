@@ -81,7 +81,7 @@ void Application::updateDelta() {
 
 	if (timeAccumulator >= 500.0) {
 		timeAccumulator = 0.0;
-		sprintf_s(m_titleBuff, "DX12 DXR - %3.0lfms, %3.0u fps", m_lastDelta, getFPS());
+		sprintf_s(m_titleBuff, "DX12 - %3.0lfms, %3.0u fps", m_lastDelta, getFPS());
 		m_renderer->setWinTitle(m_titleBuff);
 	}
 	timeAccumulator += deltaTime;

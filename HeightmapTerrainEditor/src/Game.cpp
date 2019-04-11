@@ -114,6 +114,13 @@ void Game::update(double dt) {
 		SetCursorPos(p.x, p.y);
 	}
 
+	// Camera movement
+	m_persCameraController->update(float(dt));
+	m_persCamera->updateConstantBuffer();
+
+	// Update camera constant buffer for rasterisation
+	for (auto& mesh : m_meshes)
+		mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
 
 }
 
