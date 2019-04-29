@@ -264,7 +264,8 @@ __pycache__/
 *.iobj
 *.ipdb
 
-bin/Debug-x64/D3D12-Backend/D3D12-Backend.exe
+bin/Debug-x64/PlanetEditor/PlanetEditor.exe
+bin/Release-x64/PlanetEditor/PlanetEditor.exe
 # Project_DXR/imgui.ini
 /Project_DXR/nsight_profiler.cfg
 *.tsv
