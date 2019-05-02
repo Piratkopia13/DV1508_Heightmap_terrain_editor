@@ -10,11 +10,13 @@ Game::Game()
 	: Application(1700, 900, "Loading..")
 {
 	m_dxRenderer = static_cast<DX12Renderer*>(&getRenderer());
+	getRenderer().setClearColor(0.2f, 0.4f, 0.2f, 1.0f);
+	m_dxRenderer->createRenderToTextureResources();
+
 	m_persCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 110.f, 0.1f, 1000.f);
 	m_persCamera->setPosition(XMVectorSet(7.37f, 12.44f, 13.5f, 0.f));
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
-	getRenderer().setClearColor(0.2f, 0.4f, 0.2f, 1.0f);
 
 
 }
@@ -122,6 +124,12 @@ void Game::update(double dt) {
 	for (auto& mesh : m_meshes)
 		mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
 
+	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
+	if (Input::IsKeyPressed('T')) {
+		renderToTexture = !renderToTexture;
+		m_dxRenderer->renderToTexture(renderToTexture);
+	}
+
 }
 
 void Game::fixedUpdate(double dt) {
@@ -201,6 +209,12 @@ void Game::imguiFunc() {
 
 	ImGui::End();
 
-
 	ImGui::ShowDemoWindow();
+
+	// Scene window
+	static ImVec2 size = ImVec2(400, 400);
+	ImGui::Begin("Scene");
+	if (m_dxRenderer->isRenderingToTexture())
+		ImGui::Image((ImTextureID)m_dxRenderer->getRenderedTextureGPUHandle().ptr, size);
+	ImGui::End();
 }

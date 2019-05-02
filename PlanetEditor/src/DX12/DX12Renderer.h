@@ -86,6 +86,8 @@ public:
 	Win32Window* getWindow() const;
 	ID3D12DescriptorHeap* getSamplerDescriptorHeap() const;
 	const GPUInfo& getGPUInfo() const;
+	bool& getVsync();
+	float getUsedVRAM();
 	
 	void enableDXR(bool enable);
 	bool& isDXREnabled();
@@ -104,8 +106,10 @@ public:
 	virtual void submit(Mesh* mesh) override;
 	void frame(std::function<void()> imguiFunc = []() {});
 	virtual void present() override;
-	bool& getVsync();
-	float getUsedVRAM();
+	void createRenderToTextureResources();
+	void renderToTexture(bool doIt);
+	bool isRenderingToTexture() const;
+	D3D12_GPU_DESCRIPTOR_HANDLE getRenderedTextureGPUHandle();
 
 	void useCamera(Camera* camera);
 	
@@ -202,6 +206,17 @@ private:
 	UINT m_numSamplerDescriptors;
 	UINT m_samplerDescriptorHandleIncrementSize;
 	
+	// Render to texture
+	struct Resource {
+		wComPtr<ID3D12Resource1> res;
+		D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle;
+		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle;
+	};
+	std::vector<Resource> m_renderToTextureResources;
+	bool m_renderToTexture;
+	//wComPtr<ID3D12DescriptorHeap> m_rtSrvDescriptorHeap;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE m_cdh;
 	UINT m_renderTargetDescriptorSize;
 	std::vector<UINT64> m_fenceValues;
 	D3D12_VIEWPORT m_viewport;
@@ -218,7 +233,6 @@ private:
 	std::vector<bool> m_runWorkers;
 	std::mutex m_mainMutex;
 	std::condition_variable m_mainCondVar;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_cdh;
 	std::atomic_bool m_running;
 
 	DX12Skybox* m_skybox;

@@ -38,6 +38,7 @@ DX12Renderer::DX12Renderer()
 	, m_DXREnabled(false)
 	, m_backBufferIndex(0)
 	, m_vsync(false)
+	, m_renderToTexture(true)
 {
 	m_renderTargets.resize(NUM_SWAP_BUFFERS);
 	m_fenceValues.resize(NUM_SWAP_BUFFERS, 0);
@@ -486,7 +487,7 @@ void DX12Renderer::createFenceAndEventHandle() {
 void DX12Renderer::createRenderTargets() {
 	// Create descriptor heap for render target views
 	D3D12_DESCRIPTOR_HEAP_DESC dhd = {};
-	dhd.NumDescriptors = NUM_SWAP_BUFFERS;
+	dhd.NumDescriptors = NUM_SWAP_BUFFERS * 2; // * 2 to allow for render to texture resources
 	dhd.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	ThrowIfFailed(m_device->CreateDescriptorHeap(&dhd, IID_PPV_ARGS(&m_renderTargetsHeap)));
 
@@ -622,7 +623,7 @@ HRESULT DX12Renderer::initImGui() {
 	// Create the ImGui-specific descriptor heap
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
 	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	desc.NumDescriptors = 1;
+	desc.NumDescriptors = 1 + getNumSwapBuffers();
 	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(m_device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_ImGuiDescHeap)));
 
@@ -799,6 +800,10 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 	m_cdh = m_renderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
 	m_cdh.ptr += m_renderTargetDescriptorSize * frameIndex;
 
+	if (m_renderToTexture) {
+		// Render to texture resources lay after the swap chains back buffers in the heap
+		m_cdh.ptr += m_renderTargetDescriptorSize * getNumSwapBuffers();
+	}
 	
 	
 	// Reset copy command
@@ -933,6 +938,15 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 
 	}
 
+	// Set render target to back buffer, even if the parts before rendered to texture
+	m_cdh = m_renderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	m_cdh.ptr += m_renderTargetDescriptorSize * frameIndex;
+
+	if (m_renderToTexture) {
+		// Back buffer has not been cleared yet, do that now
+		m_postCommand.list->ClearRenderTargetView(m_cdh, m_clearColor, 0, nullptr);
+	}
+
 	// ImGui
 	{
 		m_postCommand.list->OMSetRenderTargets(1, &m_cdh, true, nullptr);
@@ -951,12 +965,15 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 		// Set the descriptor heaps
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_ImGuiDescHeap.Get() };
 		m_postCommand.list->SetDescriptorHeaps(ARRAYSIZE(descriptorHeaps), descriptorHeaps);
+		D3DUtils::setResourceTransitionBarrier(m_postCommand.list.Get(), m_renderToTextureResources[frameIndex].res.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		//m_postCommand.list->
 		ImGui::Render();
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_postCommand.list.Get());
 		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
+		D3DUtils::setResourceTransitionBarrier(m_postCommand.list.Get(), m_renderToTextureResources[frameIndex].res.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
 	// Indicate that the back buffer will now be used to present
@@ -1112,6 +1129,88 @@ void DX12Renderer::present() {
 	//waitForGPU(); //Wait for GPU to finish.
 				  //NOT BEST PRACTICE, only used as such for simplicity.
 	nextFrame();
+}
+
+void DX12Renderer::createRenderToTextureResources() {
+
+	m_renderToTextureResources.resize(getNumSwapBuffers());
+
+	D3D12_RESOURCE_DESC textureDesc = {};
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.DepthOrArraySize = 1;
+	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	textureDesc.Width = m_window->getWindowWidth();
+	textureDesc.Height = m_window->getWindowHeight();
+	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	textureDesc.MipLevels = 1;
+	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+
+	UINT64 textureUploadBufferSize;
+	m_device->GetCopyableFootprints(&textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &textureUploadBufferSize);
+
+	// create the descriptor heap that will store our srvs
+	/*D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.NumDescriptors = getNumSwapBuffers();
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_rtSrvDescriptorHeap)));
+	m_rtSrvDescriptorHeap->SetName(L"RT SRV Desc Heap");*/
+
+	D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHeap = m_ImGuiDescHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHeap = m_ImGuiDescHeap->GetGPUDescriptorHandleForHeapStart();
+	auto srvStep = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	// First slot is used for imgui stuff
+	srvCpuHeap.ptr += srvStep;
+	srvGpuHeap.ptr += srvStep;
+
+	// Get the heap start after the back buffer resources
+	D3D12_CPU_DESCRIPTOR_HANDLE rtHeapStart = m_renderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
+	rtHeapStart.ptr += m_renderTargetDescriptorSize * getNumSwapBuffers();
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = textureDesc.Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = 1;
+
+	auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+	D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
+		m_window->getWindowWidth(), m_window->getWindowHeight(),
+		1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+
+	D3D12_CLEAR_VALUE clearValue = {};
+	memcpy(clearValue.Color, m_clearColor, sizeof(float) * 4);
+	clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+	for (unsigned int i = 0; i < m_renderToTextureResources.size(); i++) {
+		m_device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(m_renderToTextureResources[i].res.ReleaseAndGetAddressOf()));
+		m_renderToTextureResources[i].res->SetName(L"RenderTexture");
+		m_device->CreateRenderTargetView(m_renderToTextureResources[i].res.Get(), nullptr, rtHeapStart);
+		m_device->CreateShaderResourceView(m_renderToTextureResources[i].res.Get(), &srvDesc, srvCpuHeap);
+		m_renderToTextureResources[i].srvCpuHandle = srvCpuHeap;
+		m_renderToTextureResources[i].srvGpuHandle = srvGpuHeap;
+		// Step pointers
+		rtHeapStart.ptr += m_renderTargetDescriptorSize;
+		srvCpuHeap.ptr += srvStep;
+		srvGpuHeap.ptr += srvStep;
+	}
+}
+
+void DX12Renderer::renderToTexture(bool doIt) {
+	m_renderToTexture = doIt;
+}
+
+bool DX12Renderer::isRenderingToTexture() const {
+	return m_renderToTexture;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE DX12Renderer::getRenderedTextureGPUHandle() {
+	auto frameIndex = getFrameIndex();
+	
+	return m_renderToTextureResources[frameIndex].srvGpuHandle;
 }
 
 bool& DX12Renderer::getVsync() {
