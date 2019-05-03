@@ -151,25 +151,25 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)Intermediates\$(Configuration)-$(Platform)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(SolutionDir)vendor;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)vendor\FBXSDK\lib\vs2017\x64\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PerformanceTestDebug|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)Intermediates\$(Configuration)-$(Platform)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(SolutionDir)vendor;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)vendor\FBXSDK\lib\vs2017\x64\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)Intermediates\$(Configuration)-$(Platform)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(SolutionDir)vendor;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)vendor\FBXSDK\lib\vs2017\x64\release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='PerformanceTest|x64'">
     <OutDir>$(SolutionDir)bin\$(Configuration)-$(Platform)\$(ProjectName)\</OutDir>
     <IntDir>$(SolutionDir)Intermediates\$(Configuration)-$(Platform)\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)vendor\stb\include;$(SolutionDir)$(SolutionName)\src;$(SolutionDir)vendor\FBXSDK\include;$(SolutionDir)vendor;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)vendor\FBXSDK\lib\vs2017\x64\release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

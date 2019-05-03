@@ -1,10 +1,12 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Game.h"
 #include "DX12/DX12Renderer.h"
 #include "DX12/DX12Material.h"
 #include "DX12/DX12Mesh.h"
 #include "DX12/DX12VertexBuffer.h"
 #include "Utils/Input.h"
+
+#include "IconsFontAwesome5.h"
 
 Game::Game() 
 	: Application(1700, 900, "Loading..")
@@ -18,6 +20,13 @@ Game::Game()
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
+	ImGuiIO& io = ImGui::GetIO();
+	io.Fonts->AddFontDefault();
+	// merge in icons from Font Awesome
+	static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
+	ImFontConfig icons_config; icons_config.MergeMode = true; icons_config.PixelSnapH = true;
+	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config, icons_ranges);
+	// use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
 
 }
 
@@ -161,6 +170,26 @@ void Game::render(double dt) {
 }
 
 void Game::imguiFunc() {
+	// Style
+	ImGuiStyle* style = &ImGui::GetStyle();
+	style->WindowPadding = ImVec2(15, 15);
+	style->WindowRounding = 5.0f;
+	style->FramePadding = ImVec2(5, 5);
+	style->FrameRounding = 4.0f;
+	style->ItemSpacing = ImVec2(12, 8);
+	style->ItemInnerSpacing = ImVec2(8, 6);
+	style->IndentSpacing = 25.0f;
+	style->ScrollbarSize = 15.0f;
+	style->ScrollbarRounding = 9.0f;
+	style->GrabMinSize = 5.0f;
+	style->GrabRounding = 3.0f;
+	/*ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(7, 7));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.f);
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.f);
+	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0.f);
+	ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.f);
+	ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.f);*/
+
 	static bool opt_fullscreen_persistant = true;
 	bool opt_fullscreen = opt_fullscreen_persistant;
 	static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
@@ -228,7 +257,7 @@ void Game::imguiFunc() {
 	ImGui::Begin("Scene");
 	ImVec2 lastSize = size;
 	size.x = ImGui::GetWindowSize().x;
-	size.y = ImGui::GetWindowSize().y - 20;
+	size.y = ImGui::GetWindowSize().y - 25;
 	if (m_dxRenderer->isRenderingToTexture())
 		ImGui::Image((ImTextureID)m_dxRenderer->getRenderedTextureGPUHandle().ptr, size);
 	// Resize render output to window size
@@ -238,6 +267,76 @@ void Game::imguiFunc() {
 			m_dxRenderer->resizeRenderTexture(size.x, size.y);
 		});
 	}
+	ImGui::End();
+	ImGui::PopStyleVar();
+
+	imguiTimeline();
+}
+
+void Game::imguiTimeline() {
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
+	ImGui::Begin("Timeline");
+
+	ImGui::Text("Timeline things");
+	/*std::string text = "Things here " ICON_FA_PLUS;
+	auto width = ImGui::CalcTextSize(text.c_str());
+	ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvailWidth() - width.x, ImGui::GetCursorPosY()));
+	ImGui::Text(text.c_str());*/
+
+	const char* branches[] = {
+		"Master",
+		"Kaka"
+	};
+	const char* popupOptions[] = {
+		"Add tag",
+		"Compare with current"
+	};
+
+
+	static int currentBranchId = 0;
+	ImGui::SetNextItemWidth(100.0f);
+	ImGui::AlignTextToFramePadding();
+	ImGui::Text("Branch");
+	ImGui::SameLine();
+	ImGui::Combo("##hidelabel", &currentBranchId, branches, ARRAYSIZE(branches));
+
+	struct Command {
+		std::string name;
+		char* icon;
+	};
+	// Add dummy commands
+	std::vector<Command> commands;
+	for (int i = 0; i < 2; i++) {
+		commands.push_back({ "Generate", ICON_FA_PLUS });
+		commands.push_back({ "Move", ICON_FA_ARROWS_ALT });
+		commands.push_back({ "Rotate", ICON_FA_UNDO });
+	}
+
+	// Add spacing to right align command buttons
+	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
+
+	// Draw buttons
+	bool first = true;
+	for (auto cmd : commands) {
+		if (!first)
+			ImGui::SameLine();
+		first = false;
+		if (ImGui::Button(cmd.icon)) {
+			ImGui::OpenPopup("command_popup");
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(cmd.name.c_str());
+	}
+
+	static int selectedPopupOption = -1;
+	if (ImGui::BeginPopup("command_popup")) {
+		for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
+			if (ImGui::Selectable(popupOptions[i]))
+				selectedPopupOption = i;
+		ImGui::EndPopup();
+	}
+
+	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
 	ImGui::End();
 	ImGui::PopStyleVar();
 }

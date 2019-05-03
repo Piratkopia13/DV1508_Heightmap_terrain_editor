@@ -29,6 +29,7 @@ public:
 
 private:
 	void imguiFunc();
+	void imguiTimeline();
 	
 private:
 	DX12Renderer* m_dxRenderer;
