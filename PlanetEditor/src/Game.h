@@ -49,4 +49,6 @@ private:
 	std::unique_ptr<PotatoFBXImporter> m_fbxImporter;
 	std::vector<PotatoModel*> m_models;
 
+	bool m_cursorInScene;
+
 };

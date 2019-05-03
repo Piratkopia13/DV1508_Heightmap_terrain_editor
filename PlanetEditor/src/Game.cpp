@@ -11,6 +11,8 @@
 Game::Game() 
 	: Application(1700, 900, "Loading..")
 {
+	m_cursorInScene = false;
+
 	m_dxRenderer = static_cast<DX12Renderer*>(&getRenderer());
 	getRenderer().setClearColor(0.2f, 0.4f, 0.2f, 1.0f);
 	m_dxRenderer->createRenderToTextureResources();
@@ -113,7 +115,7 @@ void Game::init() {
 
 void Game::update(double dt) {
 
-	if (Input::IsMouseButtonPressed(Input::MouseButton::RIGHT)) {
+	if (Input::IsMouseButtonPressed(Input::MouseButton::RIGHT) && m_cursorInScene) {
 		Input::showCursor(Input::IsCursorHidden());
 	}
 	// Lock mouseaaw
@@ -255,6 +257,7 @@ void Game::imguiFunc() {
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	ImGui::Begin("Scene");
+	m_cursorInScene = ImGui::IsMouseHoveringWindow();
 	ImVec2 lastSize = size;
 	size.x = ImGui::GetWindowSize().x;
 	size.y = ImGui::GetWindowSize().y - 25;
