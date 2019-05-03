@@ -228,6 +228,9 @@ int DX12Renderer::initialize(unsigned int width, unsigned int height) {
 
 	m_window = std::make_unique<Win32Window>(GetModuleHandle(NULL), width, height, "");
 
+	m_renderTextureWidth = width;
+	m_renderTextureHeight = height;
+
 	// 1. Initalize the window
 	if (!m_window->initialize()) {
 		OutputDebugString(L"\nFailed to initialize Win32Window\n");
@@ -308,6 +311,42 @@ int DX12Renderer::initialize(unsigned int width, unsigned int height) {
 	m_numFrames = 0;
 
 	return 0;
+}
+
+void DX12Renderer::resize(unsigned int width, unsigned int height) {
+	// TODO: implement
+
+	// Recreate 
+	//	 swap chain
+	//	 depth/stencil buffer and view
+	//	 update viewport size
+}
+void DX12Renderer::resizeRenderTexture(unsigned int width, unsigned int height) {
+	// TODO: implement
+	std::cout << "should now resize to " << width << "x" << height << std::endl;
+	
+	// Flush command queues
+	waitForGPU();
+	/*for (int i = 0; i < getNumSwapBuffers(); i++)
+		nextFrame();*/
+
+	m_renderTextureWidth = width;
+	m_renderTextureHeight = height;
+
+	//	 update render target viewport size
+	m_renderTextureViewport.TopLeftX = 0.0f;
+	m_renderTextureViewport.TopLeftY = 0.0f;
+	m_renderTextureViewport.Width = (float)width;
+	m_renderTextureViewport.Height = (float)height;
+	m_renderTextureViewport.MinDepth = 0.0f;
+	m_renderTextureViewport.MaxDepth = 1.0f;
+
+	m_renderTextureScissorRect.left = (long)0;
+	m_renderTextureScissorRect.right = (long)width;
+	m_renderTextureScissorRect.top = (long)0;
+	m_renderTextureScissorRect.bottom = (long)height;
+
+	createRenderToTextureResources();
 }
 
 /*
@@ -737,8 +776,14 @@ void DX12Renderer::workerThread(unsigned int id) {
 			// Set topology
 			list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			//Set necessary states.
-			list->RSSetViewports(1, &m_viewport);
-			list->RSSetScissorRects(1, &m_scissorRect);
+			if (m_renderToTexture) {
+				list->RSSetViewports(1, &m_renderTextureViewport);
+				list->RSSetScissorRects(1, &m_renderTextureScissorRect);
+			}
+			else {
+				list->RSSetViewports(1, &m_viewport);
+				list->RSSetScissorRects(1, &m_scissorRect);
+			}
 
 			for (auto mesh : work->second) {
 				//size_t numberElements = mesh->geometryBuffer.numElements;
@@ -783,7 +828,11 @@ void DX12Renderer::workerThread(unsigned int id) {
 #ifdef MULTITHREADED
 void DX12Renderer::frame(std::function<void()> imguiFunc) {
 
-	// TODO: check if drawList differs from last frame, if so rebuild DXR acceleration structures
+	// Execute stored functions that needs to run pre-frame
+	for (auto& func : m_preFrameFuncsToExecute) {
+		func();
+	}
+	m_preFrameFuncsToExecute.clear();
 
 	if (m_firstFrame) {
 		//Execute the initialization command list
@@ -865,8 +914,14 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 		// Set topology
 		m_preCommand.list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		//Set necessary states.
-		m_preCommand.list->RSSetViewports(1, &m_viewport);
-		m_preCommand.list->RSSetScissorRects(1, &m_scissorRect);
+		if (m_renderToTexture) {
+			m_preCommand.list->RSSetViewports(1, &m_renderTextureViewport);
+			m_preCommand.list->RSSetScissorRects(1, &m_renderTextureScissorRect);
+		}
+		else {
+			m_preCommand.list->RSSetViewports(1, &m_viewport);
+			m_preCommand.list->RSSetScissorRects(1, &m_scissorRect);
+		}
 
 		m_cam->updateConstantBuffer();
 		m_skybox->setCamCB(m_cam->getConstantBuffer());
@@ -926,8 +981,13 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 		// Do post process temporal accumulation from the dxr output
 		// Bind pipeline state set up with the correct shaders
 		m_postCommand.list->OMSetRenderTargets(1, &m_cdh, true, nullptr);
-		m_postCommand.list->RSSetViewports(1, &m_viewport);
-		m_postCommand.list->RSSetScissorRects(1, &m_scissorRect);
+		if (m_renderToTexture) {
+			m_postCommand.list->RSSetViewports(1, &m_renderTextureViewport);
+			m_postCommand.list->RSSetScissorRects(1, &m_renderTextureScissorRect);
+		} else {
+			m_postCommand.list->RSSetViewports(1, &m_viewport);
+			m_postCommand.list->RSSetScissorRects(1, &m_scissorRect);
+		}
 
 		if (m_dxr->getRTFlags() & RT_ENABLE_TA) {
 			m_dxr->doTemporalAccumulation(m_postCommand.list.Get(), m_renderTargets[frameIndex].Get());
@@ -951,6 +1011,8 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 	{
 		m_postCommand.list->OMSetRenderTargets(1, &m_cdh, true, nullptr);
 		m_postCommand.list->SetGraphicsRootSignature(m_globalRootSignature.Get());
+		m_postCommand.list->RSSetViewports(1, &m_viewport);
+		m_postCommand.list->RSSetScissorRects(1, &m_scissorRect);
 
 		// Start the Dear ImGui frame
 		ImGui_ImplDX12_NewFrame();
@@ -965,7 +1027,8 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 		// Set the descriptor heaps
 		ID3D12DescriptorHeap* descriptorHeaps[] = { m_ImGuiDescHeap.Get() };
 		m_postCommand.list->SetDescriptorHeaps(ARRAYSIZE(descriptorHeaps), descriptorHeaps);
-		D3DUtils::setResourceTransitionBarrier(m_postCommand.list.Get(), m_renderToTextureResources[frameIndex].res.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		if (m_renderToTexture)
+			D3DUtils::setResourceTransitionBarrier(m_postCommand.list.Get(), m_renderToTextureResources[frameIndex].res.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		//m_postCommand.list->
 		ImGui::Render();
 		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_postCommand.list.Get());
@@ -973,7 +1036,8 @@ void DX12Renderer::frame(std::function<void()> imguiFunc) {
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
-		D3DUtils::setResourceTransitionBarrier(m_postCommand.list.Get(), m_renderToTextureResources[frameIndex].res.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+		if (m_renderToTexture)
+			D3DUtils::setResourceTransitionBarrier(m_postCommand.list.Get(), m_renderToTextureResources[frameIndex].res.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	}
 
 	// Indicate that the back buffer will now be used to present
@@ -1135,29 +1199,6 @@ void DX12Renderer::createRenderToTextureResources() {
 
 	m_renderToTextureResources.resize(getNumSwapBuffers());
 
-	D3D12_RESOURCE_DESC textureDesc = {};
-	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	textureDesc.DepthOrArraySize = 1;
-	textureDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	textureDesc.Width = m_window->getWindowWidth();
-	textureDesc.Height = m_window->getWindowHeight();
-	textureDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	textureDesc.MipLevels = 1;
-	textureDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	textureDesc.SampleDesc.Count = 1;
-	textureDesc.SampleDesc.Quality = 0;
-
-	UINT64 textureUploadBufferSize;
-	m_device->GetCopyableFootprints(&textureDesc, 0, 1, 0, nullptr, nullptr, nullptr, &textureUploadBufferSize);
-
-	// create the descriptor heap that will store our srvs
-	/*D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.NumDescriptors = getNumSwapBuffers();
-	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	ThrowIfFailed(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_rtSrvDescriptorHeap)));
-	m_rtSrvDescriptorHeap->SetName(L"RT SRV Desc Heap");*/
-
 	D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHeap = m_ImGuiDescHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHeap = m_ImGuiDescHeap->GetGPUDescriptorHandleForHeapStart();
 	auto srvStep = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -1169,6 +1210,10 @@ void DX12Renderer::createRenderToTextureResources() {
 	D3D12_CPU_DESCRIPTOR_HANDLE rtHeapStart = m_renderTargetsHeap->GetCPUDescriptorHandleForHeapStart();
 	rtHeapStart.ptr += m_renderTargetDescriptorSize * getNumSwapBuffers();
 
+	D3D12_RESOURCE_DESC textureDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
+		m_renderTextureWidth, m_renderTextureHeight,
+		1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = textureDesc.Format;
@@ -1177,16 +1222,12 @@ void DX12Renderer::createRenderToTextureResources() {
 
 	auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-	D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM,
-		m_window->getWindowWidth(), m_window->getWindowHeight(),
-		1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
-
 	D3D12_CLEAR_VALUE clearValue = {};
 	memcpy(clearValue.Color, m_clearColor, sizeof(float) * 4);
 	clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 	for (unsigned int i = 0; i < m_renderToTextureResources.size(); i++) {
-		m_device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &desc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(m_renderToTextureResources[i].res.ReleaseAndGetAddressOf()));
+		m_device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES, &textureDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(m_renderToTextureResources[i].res.ReleaseAndGetAddressOf()));
 		m_renderToTextureResources[i].res->SetName(L"RenderTexture");
 		m_device->CreateRenderTargetView(m_renderToTextureResources[i].res.Get(), nullptr, rtHeapStart);
 		m_device->CreateShaderResourceView(m_renderToTextureResources[i].res.Get(), &srvDesc, srvCpuHeap);
@@ -1229,6 +1270,10 @@ void DX12Renderer::executeNextOpenPreCommand(std::function<void()> func) {
 
 void DX12Renderer::executeNextOpenCopyCommand(std::function<void()> func) {
 	m_copyCommandFuncsToExecute.push_back(func);
+}
+
+void DX12Renderer::executeNextPreFrameCommand(std::function<void()> func) {
+	m_preFrameFuncsToExecute.push_back(func);
 }
 
 void DX12Renderer::nextFrame() {

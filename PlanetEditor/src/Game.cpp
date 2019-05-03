@@ -129,6 +129,16 @@ void Game::update(double dt) {
 		renderToTexture = !renderToTexture;
 		m_dxRenderer->renderToTexture(renderToTexture);
 	}
+	if (Input::IsKeyPressed('P')) {
+		m_dxRenderer->executeNextPreFrameCommand([&]() {
+			m_dxRenderer->resizeRenderTexture(300, 300);
+		});
+	}
+	if (Input::IsKeyPressed('O')) {
+		m_dxRenderer->executeNextPreFrameCommand([&]() {
+			m_dxRenderer->resizeRenderTexture(100, 100);
+		});
+	}
 
 }
 
@@ -153,7 +163,7 @@ void Game::render(double dt) {
 void Game::imguiFunc() {
 	static bool opt_fullscreen_persistant = true;
 	bool opt_fullscreen = opt_fullscreen_persistant;
-	static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
+	static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
 	// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
 	// because it would be confusing to have two docking targets within each others.
@@ -213,8 +223,21 @@ void Game::imguiFunc() {
 
 	// Scene window
 	static ImVec2 size = ImVec2(400, 400);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 	ImGui::Begin("Scene");
+	ImVec2 lastSize = size;
+	size.x = ImGui::GetWindowSize().x;
+	size.y = ImGui::GetWindowSize().y - 20;
 	if (m_dxRenderer->isRenderingToTexture())
 		ImGui::Image((ImTextureID)m_dxRenderer->getRenderedTextureGPUHandle().ptr, size);
+	// Resize render output to window size
+	if (lastSize.x != size.x || lastSize.y != size.y) {
+		m_persCamera->setAspectRatio(size.x / size.y);
+		m_dxRenderer->executeNextPreFrameCommand([&]() {
+			m_dxRenderer->resizeRenderTexture(size.x, size.y);
+		});
+	}
 	ImGui::End();
+	ImGui::PopStyleVar();
 }

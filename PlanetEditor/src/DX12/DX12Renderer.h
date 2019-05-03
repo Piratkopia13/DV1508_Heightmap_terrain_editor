@@ -96,6 +96,8 @@ public:
 	D3D12::D3D12Timer& getTimer();
 
 	virtual int initialize(unsigned int width = 640, unsigned int height = 480) override;
+	void resize(unsigned int width, unsigned int height);
+	void resizeRenderTexture(unsigned int width, unsigned int height);
 	virtual void setWinTitle(const char* title) override;
 	virtual int shutdown() override;
 
@@ -115,6 +117,7 @@ public:
 	
 	void executeNextOpenPreCommand(std::function<void()> func);
 	void executeNextOpenCopyCommand(std::function<void()> func);
+	void executeNextPreFrameCommand(std::function<void()> func);
 
 	void waitForGPU();
 	void reportLiveObjects();
@@ -144,6 +147,7 @@ private:
 private:
 	std::vector<std::function<void()>> m_preCommandFuncsToExecute; // Stored functions to execute on next open pre-command list
 	std::vector<std::function<void()>> m_copyCommandFuncsToExecute; // Stored functions to execute on next open copy-command list
+	std::vector<std::function<void()>> m_preFrameFuncsToExecute;
 
 	// Only used for initialization
 	IDXGIFactory7* m_factory;
@@ -206,7 +210,7 @@ private:
 	UINT m_numSamplerDescriptors;
 	UINT m_samplerDescriptorHandleIncrementSize;
 	
-	// Render to texture
+	// Render texture
 	struct Resource {
 		wComPtr<ID3D12Resource1> res;
 		D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle;
@@ -214,7 +218,10 @@ private:
 	};
 	std::vector<Resource> m_renderToTextureResources;
 	bool m_renderToTexture;
-	//wComPtr<ID3D12DescriptorHeap> m_rtSrvDescriptorHeap;
+	D3D12_VIEWPORT m_renderTextureViewport;
+	D3D12_RECT m_renderTextureScissorRect;
+	unsigned int m_renderTextureWidth;
+	unsigned int m_renderTextureHeight;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_cdh;
 	UINT m_renderTargetDescriptorSize;
