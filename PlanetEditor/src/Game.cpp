@@ -325,14 +325,16 @@ void Game::imguiTimeline() {
 			ImGui::SameLine();
 		first = false;
 		if (ImGui::Button(cmd.icon)) {
-			ImGui::OpenPopup("command_popup");
+			std::cout << "Revert to point" << std::endl;
 		}
+		ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
+
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(cmd.name.c_str());
+			ImGui::SetTooltip(("Go back to this " + cmd.name).c_str());
 	}
 
 	static int selectedPopupOption = -1;
-	if (ImGui::BeginPopup("command_popup")) {
+	if (ImGui::BeginPopupContextItem("command_popup")) {
 		for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
 			if (ImGui::Selectable(popupOptions[i]))
 				selectedPopupOption = i;
