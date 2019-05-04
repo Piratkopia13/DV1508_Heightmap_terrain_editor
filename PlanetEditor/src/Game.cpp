@@ -311,14 +311,20 @@ void Game::imguiTimeline() {
 	};
 	// Add dummy commands
 	std::vector<Command> commands;
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 100; i++) {
 		commands.push_back({ "Generate", ICON_FA_PLUS });
 		commands.push_back({ "Move", ICON_FA_ARROWS_ALT });
 		commands.push_back({ "Rotate", ICON_FA_UNDO });
 	}
 
 	// Add spacing to right align command buttons
-	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
+	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
+	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
+
+
+	// Scroll area
+	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
 
 	// Draw buttons
 	bool first = true;
@@ -334,6 +340,10 @@ void Game::imguiTimeline() {
 		if (ImGui::IsItemHovered())
 			ImGui::SetTooltip(("Go back to this " + cmd.name).c_str());
 	}
+
+	ImGui::EndChild();
+	// End of scroll area
+
 
 	static int selectedPopupOption = -1;
 	if (ImGui::BeginPopupContextItem("command_popup")) {
