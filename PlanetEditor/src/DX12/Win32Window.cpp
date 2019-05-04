@@ -103,10 +103,10 @@ LRESULT Win32Window::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 		break;
 	case WM_ACTIVATEAPP:
 		if (LOWORD(wParam) == WA_ACTIVE) {
-			Input::setActive(true);
+			Input::SetActive(true);
 		}
 		else {
-			Input::setActive(false);
+			Input::SetActive(false);
 		}
 		break;
 	case WM_INPUT:

@@ -57,7 +57,7 @@ const UINT Application::getFPS() const {
 }
 
 void Application::updateDelta() {
-	static const int WINDOW_SIZE = 10;
+	static const int WINDOW_SIZE = 200;
 	static LARGE_INTEGER lStart;
 	static LARGE_INTEGER lFreq;
 	static UINT64 start = 0;

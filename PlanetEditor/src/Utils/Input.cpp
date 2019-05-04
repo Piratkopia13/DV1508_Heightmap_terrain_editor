@@ -12,6 +12,11 @@ bool Input::m_cursorHidden = false;
 std::map<unsigned int, bool> Input::m_keysDown = {};
 std::vector<unsigned int> Input::m_keysPressedPreviousFrame = {};
 bool Input::m_isActive = true;
+bool Input::m_inputAllowed = true;
+
+void Input::SetInputAllowed(bool allow) {
+	m_inputAllowed = allow;
+}
 
 void Input::RegisterKeyDown(const UINT keyCode) {
 	auto iter = m_keysDown.find(keyCode);
@@ -52,6 +57,7 @@ void Input::EndFrame() {
 }
 
 bool Input::IsKeyDown(const UINT keyCode) {
+	if (!m_inputAllowed) return false;
 	auto iter = m_keysDown.find(keyCode);
 	if (iter != m_keysDown.end()) {
 		return iter->second;
@@ -60,6 +66,7 @@ bool Input::IsKeyDown(const UINT keyCode) {
 }
 
 bool Input::IsKeyPressed(const UINT keyCode) {
+	if (!m_inputAllowed) return false;
 	return std::find(m_keysPressedPreviousFrame.begin(), m_keysPressedPreviousFrame.end(), keyCode) == m_keysPressedPreviousFrame.end()
 			&& IsKeyDown(keyCode);
 }
@@ -108,20 +115,24 @@ void Input::ProcessMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 float Input::GetMouseDX() {
+	if (!m_inputAllowed) return 0.f;
 	return m_mouseDeltaXSinceLastFrame;
 }
 
 float Input::GetMouseDY() {
+	if (!m_inputAllowed) return 0.f;
 	return m_mouseDeltaYSinceLastFrame;
 }
 
 bool Input::IsMouseButtonDown(MouseButton button) {
 	assert(button >= 0 && button < MouseButton::NUM_MOUSE_BUTTONS);
+	if (!m_inputAllowed) return false;
 	return m_mouseButtonsDown[button];
 }
 
 bool Input::IsMouseButtonPressed(MouseButton button) {
 	assert(button >= 0 && button < MouseButton::NUM_MOUSE_BUTTONS);
+	if (!m_inputAllowed) return false;
 	return m_mouseButtonsPressed[button];
 }
 
@@ -137,7 +148,7 @@ bool Input::IsCursorHidden() {
 	return m_cursorHidden;
 }
 
-void Input::setActive(bool active) {
+void Input::SetActive(bool active) {
 	m_isActive = active;
 	if (!active) {
 		m_keysDown.clear();
@@ -145,6 +156,6 @@ void Input::setActive(bool active) {
 			m_mouseButtonsDown[i] = false;
 			m_mouseButtonsPressed[i] = false;
 		}
-		showCursor(true);
+		ShowCursor(true);
 	}
 }

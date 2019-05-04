@@ -12,6 +12,8 @@ public:
 		NUM_MOUSE_BUTTONS
 	};
 
+	static void SetInputAllowed(bool allow);
+
 	// Used by Win32Window to register keystrokes
 	static void RegisterKeyDown(const UINT keyCode);
 	// Used by Win32Window to register keystrokes
@@ -36,7 +38,7 @@ public:
 	static void showCursor(bool show);
 	static bool IsCursorHidden();
 
-	static void setActive(bool active);
+	static void SetActive(bool active);
 
 private:
 	// Disallow instances
@@ -45,6 +47,7 @@ private:
 
 private:
 	static bool m_isActive;
+	static bool m_inputAllowed; // Used to disable game input when gui is active
 
 	static std::map<unsigned int, bool> m_keysDown;
 	static std::vector<unsigned int> m_keysPressedPreviousFrame;

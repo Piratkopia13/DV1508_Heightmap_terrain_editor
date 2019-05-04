@@ -115,7 +115,9 @@ void Game::init() {
 
 void Game::update(double dt) {
 
-	if (Input::IsMouseButtonPressed(Input::MouseButton::RIGHT) && m_cursorInScene) {
+	Input::SetInputAllowed((m_cursorInScene || Input::IsCursorHidden()) && !ImGui::IsAnyItemActive());
+
+	if (Input::IsMouseButtonPressed(Input::MouseButton::RIGHT)) {
 		Input::showCursor(Input::IsCursorHidden());
 	}
 	// Lock mouseaaw
