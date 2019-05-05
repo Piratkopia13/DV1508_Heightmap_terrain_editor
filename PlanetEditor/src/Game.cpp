@@ -7,6 +7,7 @@
 #include "Utils/Input.h"
 
 #include "IconsFontAwesome5.h"
+#include "ImGui/imgui_internal.h"
 
 Game::Game() 
 	: Application(1700, 900, "Loading..")
@@ -276,6 +277,7 @@ void Game::imguiFunc() {
 	ImGui::PopStyleVar();
 
 	imguiTimeline();
+	imguiGraph();
 }
 
 void Game::imguiTimeline() {
@@ -356,4 +358,65 @@ void Game::imguiTimeline() {
 	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
 	ImGui::End();
 	ImGui::PopStyleVar();
+}
+
+void Game::imguiGraph() {
+	ImGui::Begin("Graph");
+
+	// enum, struct and vector should be class variables
+	enum CommitType {
+		COMMAND, MERGE, NEWBRANCH
+	};
+	struct Commit {
+		//Command cmd;
+		std::string msg;
+		std::string branch;
+		CommitType type;
+		std::string mergeTo;
+	};
+	std::vector<Commit> commits;
+
+	// Fill with dummy commits to dummy branches
+	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "" });
+	for (int i = 0; i < 3; i++) {
+		commits.push_back({"Moved thing", "Master", COMMAND, "" });
+	}
+	for (int i = 0; i < 3; i++) {
+		commits.push_back({ "Placed tree", "Feature", COMMAND, "" });
+	}
+	commits.push_back({ "Placed tree", "Feature", MERGE, "Master" });
+
+	ImVec2 p = ImGui::GetCursorScreenPos();
+	auto drawlist = ImGui::GetWindowDrawList();
+
+	float distanceBetweenCommits = 40.f;
+	float commitRadius = 5.f;
+
+	struct BranchDrawInfo {
+		float yOffset;
+		ImU32 color;
+	};
+	// Internal map rebuilt on every draw
+	std::map<std::string, BranchDrawInfo> activeBranches;
+	float lastOffset = 0.f;
+
+	bool first = true;
+	for (int i = 0; i < commits.size(); i++) {
+		float lastX = p.x + (i-1) * distanceBetweenCommits;
+		float x = p.x + i * distanceBetweenCommits;
+		float y = p.y;
+
+		if (!first) {
+			drawlist->AddLine(ImVec2(lastX, y), ImVec2(x, y), IM_COL32(255, 0, 0, 255), 3.0f);
+		}
+		drawlist->AddCircleFilled(ImVec2(x, y), commitRadius, IM_COL32(255, 0, 0, 255));
+
+		first = false;
+	}
+
+
+	//ImTriangleContainsPoint(p, p, p, p);
+
+	ImGui::End();
 }
