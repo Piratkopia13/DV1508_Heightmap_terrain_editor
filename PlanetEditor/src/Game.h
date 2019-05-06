@@ -52,5 +52,5 @@ private:
 
 	bool m_cursorInScene;
 
-	std::vector<Branch> branches;
+	BranchManager bm;
 };

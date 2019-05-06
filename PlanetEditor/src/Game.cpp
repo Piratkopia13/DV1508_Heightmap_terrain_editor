@@ -8,8 +8,10 @@
 
 #include "IconsFontAwesome5.h"
 
+#include "ImGui/imgui_internal.h"
+
 Game::Game() 
-	: Application(1700, 900, "Loading.."), branches(2)
+	: Application(1700, 900, "Loading..")
 {
 	m_cursorInScene = false;
 
@@ -29,16 +31,6 @@ Game::Game()
 	ImFontConfig icons_config; icons_config.MergeMode = true; icons_config.PixelSnapH = true;
 	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config, icons_ranges);
 	// use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
-
-	branches[0].name = "Master";
-	// Add dummy commands
-	for (int i = 0; i < 100; i++) {
-		branches[0].commands.push_back({ "Generate", ICON_FA_PLUS });
-		branches[0].commands.push_back({ "Move", ICON_FA_ARROWS_ALT });
-		branches[0].commands.push_back({ "Rotate", ICON_FA_UNDO });
-	}
-	branches[1].name = "Kaka";
-	branches[1].commands.push_back({ "Generate", ICON_FA_PLUS });
 }
 
 Game::~Game() {
@@ -302,25 +294,32 @@ void Game::imguiTimeline() {
 		"Compare with current"
 	};
 
-	std::vector<const char*> brNames;
-	for (auto& b : branches)
-		brNames.push_back(b.name.c_str());
-	static int currentBranchId = 0;
+	
 	ImGui::SetNextItemWidth(100.0f);
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Branch");
 	ImGui::SameLine();
-	ImGui::Combo("##hidelabel", &currentBranchId, &brNames[0], brNames.size());
+	ImGui::Combo("##hidelabel", &bm.getIndex(), bm.getBranchNames().data(), bm.getSize());
 
 	ImGui::SameLine();
-	if (ImGui::Button("Merge", { 50,30 }))
-		std::cout << "Merging...\n";
-
-	ImGui::SameLine();
-	if (ImGui::Button("Branch", { 60,30 })) {
-		branches.push_back({ std::string("Branch") + std::to_string(branches.size()) });
+	if (ImGui::Button("Branch", { 60,30 }))
+		bm.addBranch();
+	
+	// Make Merge button faded if it isn't possible to merge
+	if (!bm.canMerge())
+	{
+		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 	}
-
+	ImGui::SameLine();
+	if (ImGui::Button("Merge", { 60,30 })) {
+		std::cout << "Merging...\n";
+	}
+	if (!bm.canMerge())
+	{
+		ImGui::PopItemFlag();
+		ImGui::PopStyleVar();
+	}
 
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
@@ -333,13 +332,20 @@ void Game::imguiTimeline() {
 
 	// Draw buttons
 	bool first = true;
-	for (auto cmd : branches[currentBranchId].commands) {
+	for (auto& cmd : bm.getCommands()) {
 		if (!first)
 			ImGui::SameLine();
 		first = false;
+		bool cc = bm.isCurretCommand(cmd);
+		if (cc) {
+			ImGui::PushStyleColor(ImGuiCol_Button, {0.4,0.5,1.0,1.0});
+		}
 		if (ImGui::Button(cmd.icon)) {
+			bm.setCurrentCommand(cmd);
 			std::cout << "Revert to point" << std::endl;
 		}
+		if (cc)
+			ImGui::PopStyleColor();
 		ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
 
 		if (ImGui::IsItemHovered())
