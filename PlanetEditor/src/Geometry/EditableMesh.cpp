@@ -2,6 +2,8 @@
 #include "EditableMesh.h"
 #include "../DX12/DX12Mesh.h"
 #include "../DX12/DX12Renderer.h"
+//#include "../DX12/DX12VertexBuffer.h"
+//#include "../DX12/DX12IndexBuffer.h"
 
 // Currently creates a width by height large mesh with specified number of vertices
 EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, int numVertsX, int numVertsY) {
@@ -10,9 +12,9 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, in
 
 	int numVertices = numVertsX * numVertsY;
 	int numIndices = (numVertsX - 1) * (numVertsY - 1) * 6;
-	m_mesh = std::make_unique<DX12Mesh>(static_cast<DX12Mesh*>(renderer->makeMesh()));
-	m_vertexBuffer = std::make_unique<VertexBuffer>(renderer->makeVertexBuffer(numVertices, VertexBuffer::DATA_USAGE::DYNAMIC));
-	m_indexBuffer = std::make_unique<IndexBuffer>(renderer->makeIndexBuffer(numIndices, IndexBuffer::DATA_USAGE::STATIC));
+	m_mesh = std::unique_ptr<DX12Mesh>(static_cast<DX12Mesh*>(renderer->makeMesh()));
+	m_vertexBuffer = std::unique_ptr<VertexBuffer>(renderer->makeVertexBuffer(numVertices, VertexBuffer::DATA_USAGE::DYNAMIC));
+	m_indexBuffer = std::unique_ptr<IndexBuffer>(renderer->makeIndexBuffer(numIndices, IndexBuffer::DATA_USAGE::STATIC));
 	m_mesh->setIABinding(m_vertexBuffer.get(), m_indexBuffer.get(), 0, numVertices, numIndices, sizeof(Vertex));
 	// TODO: Set the technique
 	//m_meshes.back()->technique = m_technique.get();
@@ -21,7 +23,7 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, in
 
 	// TODO: Fix proper vertex
 	Vertex* vertices = new Vertex[numVertices];
-	int* indices = new int[numIndices];
+	unsigned int* indices = new unsigned int[numIndices];
 	
 	float xVertLength = width / float(numVertsX);
 	float yVertLength = height / float(numVertsY);
@@ -32,8 +34,8 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, in
 
 			// Add square indices (2 triangles)
 			if (x < numVertsX - 2 && y < numVertsY - 2) {
-				int leftBottomIndex = (y * numVertsY + x - 1) * 6;
-				int leftBottomVertIndex = (y * numVertsX + x);
+				unsigned int leftBottomIndex = (y * (numVertsY - 1) + x) * 6;
+				unsigned int leftBottomVertIndex = (y * numVertsX + x);
 				/*
 					 Indices
 				    2 _ _ _ 3
