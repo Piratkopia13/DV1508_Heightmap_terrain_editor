@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Application.h"
+#include "Branch.h"
 
 #include "Core/Texture2D.h"
 #include "DX12/DX12Texture2DArray.h"
@@ -51,4 +52,5 @@ private:
 
 	bool m_cursorInScene;
 
+	std::vector<Branch> branches;
 };

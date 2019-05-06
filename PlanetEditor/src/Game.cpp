@@ -9,7 +9,7 @@
 #include "IconsFontAwesome5.h"
 
 Game::Game() 
-	: Application(1700, 900, "Loading..")
+	: Application(1700, 900, "Loading.."), branches(2)
 {
 	m_cursorInScene = false;
 
@@ -30,6 +30,15 @@ Game::Game()
 	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config, icons_ranges);
 	// use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
 
+	branches[0].name = "Master";
+	// Add dummy commands
+	for (int i = 0; i < 100; i++) {
+		branches[0].commands.push_back({ "Generate", ICON_FA_PLUS });
+		branches[0].commands.push_back({ "Move", ICON_FA_ARROWS_ALT });
+		branches[0].commands.push_back({ "Rotate", ICON_FA_UNDO });
+	}
+	branches[1].name = "Kaka";
+	branches[1].commands.push_back({ "Generate", ICON_FA_PLUS });
 }
 
 Game::~Game() {
@@ -288,34 +297,30 @@ void Game::imguiTimeline() {
 	ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvailWidth() - width.x, ImGui::GetCursorPosY()));
 	ImGui::Text(text.c_str());*/
 
-	const char* branches[] = {
-		"Master",
-		"Kaka"
-	};
 	const char* popupOptions[] = {
 		"Add tag",
 		"Compare with current"
 	};
 
-
+	std::vector<const char*> brNames;
+	for (auto& b : branches)
+		brNames.push_back(b.name.c_str());
 	static int currentBranchId = 0;
 	ImGui::SetNextItemWidth(100.0f);
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Branch");
 	ImGui::SameLine();
-	ImGui::Combo("##hidelabel", &currentBranchId, branches, ARRAYSIZE(branches));
+	ImGui::Combo("##hidelabel", &currentBranchId, &brNames[0], brNames.size());
 
-	struct Command {
-		std::string name;
-		char* icon;
-	};
-	// Add dummy commands
-	std::vector<Command> commands;
-	for (int i = 0; i < 100; i++) {
-		commands.push_back({ "Generate", ICON_FA_PLUS });
-		commands.push_back({ "Move", ICON_FA_ARROWS_ALT });
-		commands.push_back({ "Rotate", ICON_FA_UNDO });
+	ImGui::SameLine();
+	if (ImGui::Button("Merge", { 50,30 }))
+		std::cout << "Merging...\n";
+
+	ImGui::SameLine();
+	if (ImGui::Button("Branch", { 60,30 })) {
+		branches.push_back({ std::string("Branch") + std::to_string(branches.size()) });
 	}
+
 
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
@@ -328,7 +333,7 @@ void Game::imguiTimeline() {
 
 	// Draw buttons
 	bool first = true;
-	for (auto cmd : commands) {
+	for (auto cmd : branches[currentBranchId].commands) {
 		if (!first)
 			ImGui::SameLine();
 		first = false;

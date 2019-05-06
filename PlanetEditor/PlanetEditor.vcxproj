@@ -321,6 +321,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Branch.h" />
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Core\CameraController.h" />
     <ClInclude Include="src\Application.h" />
