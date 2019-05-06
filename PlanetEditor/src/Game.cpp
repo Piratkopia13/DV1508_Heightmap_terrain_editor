@@ -281,8 +281,11 @@ void Game::imguiFunc() {
 }
 
 void Game::imguiTimeline() {
+	if (!ImGui::Begin("Timeline")) {
+		ImGui::End();
+		return;
+	}
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
-	ImGui::Begin("Timeline");
 
 	ImGui::Text("Timeline things");
 	/*std::string text = "Things here " ICON_FA_PLUS;
@@ -326,7 +329,8 @@ void Game::imguiTimeline() {
 
 	// Scroll area
 	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
-	ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
+	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
+		ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
 
 	// Draw buttons
 	bool first = true;
@@ -356,12 +360,17 @@ void Game::imguiTimeline() {
 	}
 
 	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
-	ImGui::End();
 	ImGui::PopStyleVar();
+	ImGui::End();
 }
 
 void Game::imguiGraph() {
-	ImGui::Begin("Graph");
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+	if (!ImGui::Begin("Graph", 0, ImGuiWindowFlags_HorizontalScrollbar)) {
+		ImGui::End();
+		ImGui::PopStyleVar();
+		return;
+	}
 
 	// enum, struct and vector should be class variables
 	enum CommitType {
@@ -372,51 +381,96 @@ void Game::imguiGraph() {
 		std::string msg;
 		std::string branch;
 		CommitType type;
-		std::string mergeTo;
+		std::string otherBranch;
 	};
 	std::vector<Commit> commits;
 
 	// Fill with dummy commits to dummy branches
 	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "" });
-	for (int i = 0; i < 3; i++) {
-		commits.push_back({"Moved thing", "Master", COMMAND, "" });
-	}
+	commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "Master" });
+	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	commits.push_back({ "Moved thing", "Banana", NEWBRANCH, "Master" });
+	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
 	for (int i = 0; i < 3; i++) {
 		commits.push_back({ "Placed tree", "Feature", COMMAND, "" });
 	}
 	commits.push_back({ "Placed tree", "Feature", MERGE, "Master" });
+	commits.push_back({ "Moved thing", "Banana", COMMAND, "" });
+
+	static ImVec2 lastGraphSize = ImVec2(40, 40);
+	ImGui::BeginChild("##ScrollingRegion", lastGraphSize, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
 	ImVec2 p = ImGui::GetCursorScreenPos();
+	p.x += 20.0f;
+	p.y += 20.0f;
 	auto drawlist = ImGui::GetWindowDrawList();
 
 	float distanceBetweenCommits = 40.f;
+	float distanceBetweenBranches = 20.f;
 	float commitRadius = 5.f;
 
 	struct BranchDrawInfo {
 		float yOffset;
+		float lastCommitX;
 		ImU32 color;
 	};
 	// Internal map rebuilt on every draw
 	std::map<std::string, BranchDrawInfo> activeBranches;
-	float lastOffset = 0.f;
+	float lastOffset = -distanceBetweenBranches;
+	std::hash<std::string> hasher;
 
+	ImVec2 maxCoord = p;
 	bool first = true;
 	for (int i = 0; i < commits.size(); i++) {
-		float lastX = p.x + (i-1) * distanceBetweenCommits;
+		auto commit = commits[i];
+		if (activeBranches.find(commit.branch) == activeBranches.end()) {
+			// commit on branch not known before
+			BranchDrawInfo info;
+			srand(hasher(commit.branch));
+			info.color = IM_COL32(rand() % 255 + 10, rand() % 255 + 10, rand() % 255 + 10, 255); // Random bright-ish color
+			info.lastCommitX = p.x + max(i-1, 0) * distanceBetweenCommits;
+			lastOffset = info.yOffset = lastOffset + distanceBetweenBranches;
+			activeBranches.insert({ commit.branch, info });
+		}
+		BranchDrawInfo& info = activeBranches[commit.branch];
+
 		float x = p.x + i * distanceBetweenCommits;
-		float y = p.y;
+		float y = p.y + info.yOffset;
+		float lastX = info.lastCommitX;
+		//float lastX = p.x + (i - 1) * distanceBetweenCommits;
+		float lastY = y;
+		ImU32 circleColor = info.color;
 
 		if (!first) {
-			drawlist->AddLine(ImVec2(lastX, y), ImVec2(x, y), IM_COL32(255, 0, 0, 255), 3.0f);
+			if (commit.type == NEWBRANCH) {
+				BranchDrawInfo otherBranch = activeBranches[commit.otherBranch];
+				float otherY = p.y + otherBranch.yOffset;
+				// update lastY to draw diagonal
+				lastY = p.y + otherBranch.yOffset;
+			}
+			else if (commit.type == MERGE) {
+				BranchDrawInfo otherBranch = activeBranches[commit.otherBranch];
+				float otherY = p.y + otherBranch.yOffset;
+				y = p.y + otherBranch.yOffset;
+				// Draw horizontal line on branch merged into
+				drawlist->AddLine(ImVec2(otherBranch.lastCommitX, y), ImVec2(x, y), otherBranch.color, 3.0f);
+				circleColor = otherBranch.color;
+			}
+			drawlist->AddLine(ImVec2(lastX, lastY), ImVec2(x, y), info.color, 3.0f);
+			info.lastCommitX = x;
 		}
-		drawlist->AddCircleFilled(ImVec2(x, y), commitRadius, IM_COL32(255, 0, 0, 255));
+		drawlist->AddCircleFilled(ImVec2(x, y), commitRadius, circleColor);
+		maxCoord.x = x;
+		maxCoord.y = max(maxCoord.y, y);
 
 		first = false;
 	}
+	//ImGui::SetWindowSize(ImVec2(maxCoord.x - p.x, maxCoord.y - p.y));
+	lastGraphSize = ImVec2(maxCoord.x - p.x + 40.f, maxCoord.y - p.y + 40.f);
+	ImGui::EndChild();
 
 
 	//ImTriangleContainsPoint(p, p, p, p);
-
 	ImGui::End();
+	ImGui::PopStyleVar();
 }
