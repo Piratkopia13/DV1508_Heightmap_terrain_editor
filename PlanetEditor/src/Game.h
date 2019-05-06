@@ -29,9 +29,25 @@ public:
 	virtual void render(double dt) override;
 
 private:
+	void imguiInit();
 	void imguiFunc();
+	void imguiTopBar();
+	void imguiTopBarWindows();
 	void imguiTimeline();
-	
+	void imguiTools();
+	void imguiToolOptions();
+
+private:
+	bool m_showingNewFile;
+	bool m_showingOpenFile;
+	bool m_SaveFileAs;
+
+	bool m_showingTimeline;
+	bool m_showingToolbar;
+	bool m_showingToolOptions;
+
+
+
 private:
 	DX12Renderer* m_dxRenderer;
 
