@@ -3,8 +3,10 @@
 #include "../DX12/DX12Mesh.h"
 #include "../DX12/DX12Renderer.h"
 
-
+// Currently creates a width by height large mesh with specified number of vertices
 EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, int numVertsX, int numVertsY) {
+
+	throw(std::logic_error("Not yet fully implemented"));
 
 	int numVertices = numVertsX * numVertsY;
 	int numIndices = (numVertsX - 1) * (numVertsY - 1) * 6;
