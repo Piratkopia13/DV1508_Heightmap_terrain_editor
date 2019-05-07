@@ -34,6 +34,7 @@ private:
 	void imguiTopBar();
 	void imguiTopBarWindows();
 	void imguiTimeline();
+	void imguiGraph();
 	void imguiTools();
 	void imguiToolOptions();
 
