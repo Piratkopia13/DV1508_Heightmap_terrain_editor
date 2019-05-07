@@ -165,7 +165,9 @@ void Game::update(double dt) {
 	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
 		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
-		m_editableMesh->doCommand(rayOrigin, rayDir);
+		m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir] {
+			m_editableMesh->doCommand(rayOrigin, rayDir);
+		});
 	}
 
 }

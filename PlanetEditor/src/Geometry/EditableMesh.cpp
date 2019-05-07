@@ -2,6 +2,7 @@
 #include "EditableMesh.h"
 #include "../DX12/DX12Mesh.h"
 #include "../DX12/DX12Renderer.h"
+#include "../DX12/DX12VertexBuffer.h"
 #include "../../assets/shaders/CommonRT.hlsl"
 
 // Currently creates a width by height large mesh with specified number of vertices
@@ -89,6 +90,8 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command comm
 			XMFLOAT3 intersectionPoint;
 			// Ray hit
 			if (rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint)) {
+				//std::cout << intersectionPoint.x << ", " << intersectionPoint.y << ", " << intersectionPoint.z << std::endl;
+
 				// Stuff happens
 				p0F.y += 0.5f;
 				p1F.y += 0.5f;
@@ -108,10 +111,12 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command comm
 			p2 = DirectX::XMLoadFloat3(&p2F);
 			// Ray hit
 			if (rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint)) {
+				//std::cout << intersectionPoint.x << ", " << intersectionPoint.y << ", " << intersectionPoint.z << std::endl;
+				
 				// Stuff happens
-				p0F.y += 0.4f;
-				p1F.y += 0.4f;
-				p2F.y += 0.4f;
+				p0F.y += 0.5f;
+				p1F.y += 0.5f;
+				p2F.y += 0.5f;
 				vertices[indices[leftBottomIndex + 3]].position = p0F;
 				vertices[indices[leftBottomIndex + 4]].position = p1F;
 				vertices[indices[leftBottomIndex + 5]].position = p2F;
@@ -121,7 +126,7 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command comm
 	}
 
 	if (somethingHasChanged) {
-		m_vertexBuffer->setData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex), 0);
+		((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex));
 		std::cout << "Hit!" << std::endl;
 	}
 }
