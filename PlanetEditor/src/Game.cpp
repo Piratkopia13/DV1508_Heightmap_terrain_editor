@@ -102,7 +102,7 @@ void Game::init() {
 		m_meshes.back()->technique = m_technique.get();
 		m_meshes.back()->setTexture2DArray(m_floorTexArray.get());*/
 
-		m_editableMesh = new EditableMesh(m_dxRenderer, 100.f, 100.f, 10, 10);
+		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 100.f, 100.f, 10, 10));
 		m_editableMesh->getMesh()->technique = m_technique.get();
 		m_editableMesh->getMesh()->setTexture2DArray(m_floorTexArray.get());
 		m_meshes.emplace_back(m_editableMesh->getMesh());
@@ -160,6 +160,12 @@ void Game::update(double dt) {
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(100, 100);
 		});
+	}
+
+	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
+		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
+		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+		m_editableMesh->doCommand(rayOrigin, rayDir);
 	}
 
 }
