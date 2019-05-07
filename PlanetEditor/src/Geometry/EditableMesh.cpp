@@ -8,6 +8,8 @@
 // Currently creates a width by height large mesh with specified number of vertices
 EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY) {
 
+	assert(numVertsX > 2 && numVertsY > 2 && width > 0.f && height > 0.f);
+
 	int numVertices = numVertsX * numVertsY;
 	int numIndices = (numVertsX - 1) * (numVertsY - 1) * 6;
 	m_mesh = std::unique_ptr<DX12Mesh>(static_cast<DX12Mesh*>(renderer->makeMesh()));
@@ -20,13 +22,13 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, si
 	vertices = new Vertex[numVertices];
 	indices = new unsigned int[numIndices];
 	
-	float xVertLength = width / float(numVertsX);
-	float yVertLength = height / float(numVertsY);
+	m_vertLengthX = width / float(numVertsX);
+	m_vertLengthY = height / float(numVertsY);
 
 	for (size_t y = 0; y < numVertsY; y++) {
 		for (size_t x = 0; x < numVertsX; x++) {
 			vertices[y * numVertsX + x] = { 	
-				XMFLOAT3{x * xVertLength, 0, y * yVertLength}, // position
+				XMFLOAT3{x * m_vertLengthX, 0, y * m_vertLengthY}, // position
 				XMFLOAT3{0.f, 1.f, 0.f},  // normal
 				XMFLOAT2{float(x) / float(numVertsX - 1), float(y) / float(numVertsY - 1)} // uv
 			};
@@ -76,7 +78,11 @@ IndexBuffer * EditableMesh::getIndexBuffer() {
 }
 
 void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command command*/) {
-	bool somethingHasChanged = false;
+	float radius = 20.f;
+	float changeY = 3.f;
+	int maxIntDistX = int(radius / m_vertLengthX);
+	int maxIntDistY = int(radius / m_vertLengthY);
+	bool rayHit = false;
 	for (size_t y = 0; y < m_numVertsY - 1; y++) {
 		for (size_t x = 0; x < m_numVertsX - 1; x++) {
 			unsigned int leftBottomIndex = (y * (m_numVertsX - 1) + x) * 6;
@@ -89,18 +95,8 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command comm
 			XMVECTOR p2 = DirectX::XMLoadFloat3(&p2F);
 			XMFLOAT3 intersectionPoint;
 			// Ray hit
-			if (rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint)) {
-				//std::cout << intersectionPoint.x << ", " << intersectionPoint.y << ", " << intersectionPoint.z << std::endl;
-
-				// Stuff happens
-				p0F.y += 0.5f;
-				p1F.y += 0.5f;
-				p2F.y += 0.5f;
-				vertices[indices[leftBottomIndex + 0]].position = p0F;
-				vertices[indices[leftBottomIndex + 1]].position = p1F;
-				vertices[indices[leftBottomIndex + 2]].position = p2F;
-				somethingHasChanged = true;
-			}
+			if (rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint))
+				rayHit = true;
 
 			// Top right triangle
 			p0F = vertices[indices[leftBottomIndex + 3]].position;
@@ -109,23 +105,31 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command comm
 			p0 = DirectX::XMLoadFloat3(&p0F);
 			p1 = DirectX::XMLoadFloat3(&p1F);
 			p2 = DirectX::XMLoadFloat3(&p2F);
-			// Ray hit
-			if (rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint)) {
-				//std::cout << intersectionPoint.x << ", " << intersectionPoint.y << ", " << intersectionPoint.z << std::endl;
-				
-				// Stuff happens
-				p0F.y += 0.5f;
-				p1F.y += 0.5f;
-				p2F.y += 0.5f;
-				vertices[indices[leftBottomIndex + 3]].position = p0F;
-				vertices[indices[leftBottomIndex + 4]].position = p1F;
-				vertices[indices[leftBottomIndex + 5]].position = p2F;
-				somethingHasChanged = true;
+			// Ray hit (skip if previous hit)
+			if (!rayHit && rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint))
+				rayHit = true;
+
+			if (rayHit) {
+				int middleX = int(round(intersectionPoint.x / m_vertLengthX));
+				// Y on the mesh in world coordinates is Z
+				int middleY = int(round(intersectionPoint.z / m_vertLengthY));
+				for (size_t y_2 = max(0, middleY - maxIntDistY); y_2 < min(m_numVertsY, middleY + maxIntDistY); y_2++) {
+					for (size_t x_2 = max(0, middleX - maxIntDistX); x_2 < min(m_numVertsX, middleX + maxIntDistX); x_2++) {
+						float a = std::powf(float(y_2) * m_vertLengthY - float(middleY) * m_vertLengthY, 2.f);
+						float b = std::powf(float(x_2) * m_vertLengthX - float(middleX) * m_vertLengthX, 2.f);
+						float dist = std::sqrtf(a + b);
+						if (dist <= radius)
+							vertices[y_2 * m_numVertsX + x_2].position.y += changeY * ((radius - dist) / radius);
+					}
+				}
+				break;
 			}
 		}
+		if (rayHit)
+			break;
 	}
 
-	if (somethingHasChanged) {
+	if (rayHit) {
 		((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex));
 		std::cout << "Hit!" << std::endl;
 	}

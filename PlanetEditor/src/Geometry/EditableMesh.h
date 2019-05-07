@@ -34,6 +34,8 @@ private:
 
 	float m_width;
 	float m_height;
+	float m_vertLengthX;
+	float m_vertLengthY;
 	size_t m_numVertsX;
 	size_t m_numVertsY;
 

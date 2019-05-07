@@ -102,7 +102,7 @@ void Game::init() {
 		m_meshes.back()->technique = m_technique.get();
 		m_meshes.back()->setTexture2DArray(m_floorTexArray.get());*/
 
-		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 100.f, 100.f, 10, 10));
+		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 100.f, 100.f, 100, 100));
 		m_editableMesh->getMesh()->technique = m_technique.get();
 		m_editableMesh->getMesh()->setTexture2DArray(m_floorTexArray.get());
 		m_meshes.emplace_back(m_editableMesh->getMesh());
