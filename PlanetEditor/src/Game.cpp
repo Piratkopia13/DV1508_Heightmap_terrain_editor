@@ -5,6 +5,7 @@
 #include "DX12/DX12Mesh.h"
 #include "DX12/DX12VertexBuffer.h"
 #include "Utils/Input.h"
+#include "Geometry/EditableMesh.h"
 
 #include "IconsFontAwesome5.h"
 
@@ -89,7 +90,7 @@ void Game::init() {
 	unsigned int offset = 0;
 	{
 		// Set up floor mesh
-		m_meshes.emplace_back(static_cast<DX12Mesh*>(getRenderer().makeMesh()));
+		/*m_meshes.emplace_back(static_cast<DX12Mesh*>(getRenderer().makeMesh()));
 		m_meshes.back()->setName("Floor");
 		constexpr auto numVertices = std::extent<decltype(floorVertices)>::value;
 		constexpr auto numIndices = std::extent<decltype(floorIndices)>::value;
@@ -99,7 +100,14 @@ void Game::init() {
 		m_indexBuffers.back()->setData(floorIndices, sizeof(floorIndices), offset);
 		m_meshes.back()->setIABinding(m_vertexBuffers.back().get(), m_indexBuffers.back().get(), offset, numVertices, numIndices, sizeof(Vertex));
 		m_meshes.back()->technique = m_technique.get();
-		m_meshes.back()->setTexture2DArray(m_floorTexArray.get());
+		m_meshes.back()->setTexture2DArray(m_floorTexArray.get());*/
+
+		m_editableMesh = new EditableMesh(m_dxRenderer, 100.f, 100.f, 10, 10);
+		m_editableMesh->getMesh()->technique = m_technique.get();
+		m_editableMesh->getMesh()->setTexture2DArray(m_floorTexArray.get());
+		m_meshes.emplace_back(m_editableMesh->getMesh());
+		m_vertexBuffers.emplace_back(m_editableMesh->getVertexBuffer());
+		m_indexBuffers.emplace_back(m_editableMesh->getIndexBuffer());
 	}
 
 	if (m_dxRenderer->isDXREnabled()) {

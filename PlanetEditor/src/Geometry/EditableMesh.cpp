@@ -2,19 +2,20 @@
 #include "EditableMesh.h"
 #include "../DX12/DX12Mesh.h"
 #include "../DX12/DX12Renderer.h"
+#include "../../assets/shaders/CommonRT.hlsl"
 //#include "../DX12/DX12VertexBuffer.h"
 //#include "../DX12/DX12IndexBuffer.h"
 
 // Currently creates a width by height large mesh with specified number of vertices
 EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, int numVertsX, int numVertsY) {
 
-	throw(std::logic_error("Not yet fully implemented"));
+	//throw(std::logic_error("Not yet fully implemented"));
 
 	int numVertices = numVertsX * numVertsY;
 	int numIndices = (numVertsX - 1) * (numVertsY - 1) * 6;
 	m_mesh = std::unique_ptr<DX12Mesh>(static_cast<DX12Mesh*>(renderer->makeMesh()));
-	m_vertexBuffer = std::unique_ptr<VertexBuffer>(renderer->makeVertexBuffer(numVertices, VertexBuffer::DATA_USAGE::DYNAMIC));
-	m_indexBuffer = std::unique_ptr<IndexBuffer>(renderer->makeIndexBuffer(numIndices, IndexBuffer::DATA_USAGE::STATIC));
+	m_vertexBuffer = std::unique_ptr<VertexBuffer>(renderer->makeVertexBuffer(numVertices * sizeof(Vertex), VertexBuffer::DATA_USAGE::DYNAMIC));
+	m_indexBuffer = std::unique_ptr<IndexBuffer>(renderer->makeIndexBuffer(numIndices * sizeof(unsigned int), IndexBuffer::DATA_USAGE::STATIC));
 	m_mesh->setIABinding(m_vertexBuffer.get(), m_indexBuffer.get(), 0, numVertices, numIndices, sizeof(Vertex));
 	// TODO: Set the technique
 	//m_meshes.back()->technique = m_technique.get();
@@ -30,7 +31,11 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, in
 
 	for (size_t y = 0; y < numVertsY; y++) {
 		for (size_t x = 0; x < numVertsX; x++) {
-			vertices[y * numVertsX + x] = {x * xVertLength, 0, y * yVertLength};
+			vertices[y * numVertsX + x] = { 	
+				XMFLOAT3{x * xVertLength, 0, y * yVertLength}, // position
+				XMFLOAT3{0.f, 1.f, 0.f},  // normal
+				XMFLOAT2{float(x) / float(numVertsX - 1), float(y) / float(numVertsY - 1)} // uv
+			};
 
 			// Add square indices (2 triangles)
 			if (x < numVertsX - 2 && y < numVertsY - 2) {
@@ -45,21 +50,33 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, in
 				*/
 				// Bottom left triangle
 				indices[leftBottomIndex + 0] = leftBottomVertIndex; // 0
-				indices[leftBottomIndex + 1] = leftBottomVertIndex + 1; // 1
-				indices[leftBottomIndex + 2] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 1] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 2] = leftBottomVertIndex + 1; // 1
 
 				// Top right triangle
 				indices[leftBottomIndex + 3] = leftBottomVertIndex + 1; // 1
-				indices[leftBottomIndex + 4] = leftBottomVertIndex + numVertsX + 1; // 3
-				indices[leftBottomIndex + 5] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 4] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 5] = leftBottomVertIndex + numVertsX + 1; // 3
 			}
 		}
 	}
 
-	m_vertexBuffer->setData(vertices, numVertices, 0);
-	m_indexBuffer->setData(indices, numIndices, 0);
+	m_vertexBuffer->setData(vertices, numVertices * sizeof(Vertex), 0);
+	m_indexBuffer->setData(indices, numIndices * sizeof(unsigned int), 0);
 }
 
 
 EditableMesh::~EditableMesh() {
+}
+
+DX12Mesh * EditableMesh::getMesh() {
+	return m_mesh.get();
+}
+
+VertexBuffer * EditableMesh::getVertexBuffer() {
+	return m_vertexBuffer.get();
+}
+
+IndexBuffer * EditableMesh::getIndexBuffer() {
+	return m_indexBuffer.get();
 }

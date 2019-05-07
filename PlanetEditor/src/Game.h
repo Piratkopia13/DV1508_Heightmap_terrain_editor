@@ -14,6 +14,7 @@
 
 class DX12Renderer;
 class DX12Mesh;
+class EditableMesh;
 
 class Game : public Application {
 public:
@@ -46,6 +47,8 @@ private:
 	std::vector<std::unique_ptr<VertexBuffer>> m_vertexBuffers;
 	std::vector<std::unique_ptr<IndexBuffer>> m_indexBuffers;
 	std::vector<std::unique_ptr<DX12Mesh>> m_meshes;
+
+	EditableMesh* m_editableMesh;
 
 	std::unique_ptr<PotatoFBXImporter> m_fbxImporter;
 	std::vector<PotatoModel*> m_models;

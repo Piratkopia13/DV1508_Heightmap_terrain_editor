@@ -10,9 +10,13 @@ public:
 	EditableMesh(DX12Renderer* renderer, float width, float height, int numVertsX, int numVertsY);
 	~EditableMesh();
 
-	struct Vertex {
+	/*struct Vertex {
 		float position[3];
-	};
+	};*/
+
+	DX12Mesh* getMesh();
+	VertexBuffer* getVertexBuffer();
+	IndexBuffer* getIndexBuffer();
 
 private:
 	std::unique_ptr<DX12Mesh> m_mesh;
