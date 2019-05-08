@@ -8,10 +8,11 @@
 #include "Geometry/EditableMesh.h"
 
 #include "IconsFontAwesome5.h"
+#include "ImGui/imgui_internal.h"
 
 #include "ImGui/imgui_internal.h"
 
-Game::Game() 
+Game::Game()
 	: Application(1700, 900, "Loading..")
 {
 	m_cursorInScene = false;
@@ -44,7 +45,8 @@ Game::~Game() {
 void Game::init() {
 	m_fbxImporter = std::make_unique<PotatoFBXImporter>();
 	std::cout << "Loading fbx models.." << std::endl;
-	
+	imguiInit();
+
 	float floorHalfWidth = 50.0f;
 	float floorTiling = 5.0f;
 	const Vertex floorVertices[] = {
@@ -53,7 +55,7 @@ void Game::init() {
 			{XMFLOAT3(floorHalfWidth,  0.f,  floorHalfWidth), XMFLOAT3(0.f, 1.f, 0.f), XMFLOAT2(floorTiling, 0.0f)},
 			{XMFLOAT3(floorHalfWidth, 0.f,  -floorHalfWidth), XMFLOAT3(0.f, 1.f, 0.f), XMFLOAT2(floorTiling, floorTiling)},
 	};
-	const unsigned int floorIndices[] {
+	const unsigned int floorIndices[]{
 		0, 1, 2, 0, 2, 3
 	};
 
@@ -79,14 +81,14 @@ void Game::init() {
 
 	// basic technique
 	m_technique = std::unique_ptr<Technique>(getRenderer().makeTechnique(m_material.get(), getRenderer().makeRenderState()));
-	
+
 	// create textures
 	DX12Texture2DArray* floorTexture = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
 	m_floorTexArray = std::unique_ptr<DX12Texture2DArray>(floorTexture);
 	std::vector<std::string> texFiles;
 	texFiles.emplace_back("../assets/textures/floortilediffuse.png");
 	m_floorTexArray->loadFromFiles(texFiles);
-	
+
 	unsigned int offset = 0;
 	{
 		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 200.f, 200.f, 100, 100));
@@ -141,12 +143,12 @@ void Game::update(double dt) {
 	if (Input::IsKeyPressed('P')) {
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(300, 300);
-		});
+			});
 	}
 	if (Input::IsKeyPressed('O')) {
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(100, 100);
-		});
+			});
 	}
 
 	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
@@ -174,6 +176,14 @@ void Game::render(double dt) {
 	m_dxRenderer->frame(imgui);
 
 	getRenderer().present();
+
+}
+
+void Game::imguiInit() {
+	m_showingTimeline = true;
+	m_showingToolbar = true;
+	m_showingToolOptions = true;
+	m_showingTimelineGraph = true;
 
 }
 
@@ -232,29 +242,9 @@ void Game::imguiFunc() {
 	ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
 	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 
-	if (ImGui::BeginMenuBar())
-	{
-		if (ImGui::BeginMenu("Docking"))
-		{
-			// Disabling fullscreen would allow the window to be moved to the front of other windows, 
-			// which we can't undo at the moment without finer window depth/z control.
-			//ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
-
-			if (ImGui::MenuItem("Flag: NoSplit", "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0))                 dockspace_flags ^= ImGuiDockNodeFlags_NoSplit;
-			if (ImGui::MenuItem("Flag: NoResize", "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))                dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
-			if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0))  dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
-			if (ImGui::MenuItem("Flag: PassthruCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0))     dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
-			if (ImGui::MenuItem("Flag: AutoHideTabBar", "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))          dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
-			ImGui::Separator();
-			/*if (ImGui::MenuItem("Close DockSpace", NULL, false, p_open != NULL))
-				*p_open = false;*/
-			ImGui::EndMenu();
-		}
-
-		ImGui::EndMenuBar();
-	}
-
+	imguiTopBar();
 	ImGui::End();
+	imguiTopBarWindows();
 
 	ImGui::ShowDemoWindow();
 
@@ -274,19 +264,182 @@ void Game::imguiFunc() {
 		m_persCamera->setAspectRatio(size.x / size.y);
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(size.x, size.y);
-		});
+			});
 	}
 	ImGui::End();
 	ImGui::PopStyleVar();
+	if (m_showingTimeline)
+		imguiTimeline();
+	if (m_showingToolbar)
+		imguiTools();
+	if (m_showingToolOptions)
+		imguiToolOptions();
+	if(m_showingTimelineGraph)
+		imguiGraph();
+}
 
-	imguiTimeline();
+void Game::imguiTopBar() {
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("File")) {
+			if (ImGui::MenuItem("New")) {
+				m_showingNewFile = true;
+			}
+			if (ImGui::MenuItem("Open")) {
+				m_showingOpenFile = true;
+			}
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Save")) {
+
+			}
+			if (ImGui::MenuItem("Save as")) {
+				m_SaveFileAs = true;
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Exit", "Alt+F4")) {
+				PostQuitMessage(10);
+			}
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Edit")) {
+			if (ImGui::MenuItem("Undo")) {
+
+			}
+			if (ImGui::MenuItem("Redo")) {
+
+			}
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("View")) {
+			if (ImGui::MenuItem("History Bar")) {
+				m_showingTimeline = true;
+			}
+			if (ImGui::MenuItem("Graph")) {
+				m_showingTimelineGraph = true;
+			}
+			if (ImGui::MenuItem("Tools")) {
+				m_showingToolbar = true;
+			}
+			if (ImGui::MenuItem("Tool Settings")) {
+				m_showingToolOptions = true;
+			}
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Branch")) {
+			if (ImGui::MenuItem("New Local Branch")) {
+
+			}
+			if (ImGui::MenuItem("Merge Into")) {
+
+			}
+			if (ImGui::MenuItem("Reset")) {
+
+			}
+			if (ImGui::MenuItem("Rename")) {
+
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Fetch")) {
+
+			}
+			if (ImGui::MenuItem("Pull")) {
+
+			}
+			if (ImGui::MenuItem("Push")) {
+
+			}
+
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Help")) {
+			if (ImGui::MenuItem("View Help")) {
+
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Send feedback")) {
+
+			}
+			if (ImGui::MenuItem("Check for updates")) {
+
+			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("About")) {
+
+			}
+
+			ImGui::EndMenu();
+		}
+
+		//if (ImGui::BeginMenu("Docking"))
+		//{
+		//	// Disabling fullscreen would allow the window to be moved to the front of other windows, 
+		//	// which we can't undo at the moment without finer window depth/z control.
+		//	//ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
+
+		//	if (ImGui::MenuItem("Flag: NoSplit", "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0))                 dockspace_flags ^= ImGuiDockNodeFlags_NoSplit;
+		//	if (ImGui::MenuItem("Flag: NoResize", "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))                dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
+		//	if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0))  dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
+		//	if (ImGui::MenuItem("Flag: PassthruCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0))     dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
+		//	if (ImGui::MenuItem("Flag: AutoHideTabBar", "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))          dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
+		//	ImGui::Separator();
+		//	/*if (ImGui::MenuItem("Close DockSpace", NULL, false, p_open != NULL))
+		//		*p_open = false;*/
+		//	ImGui::EndMenu();
+		//}
+
+		ImGui::EndMenuBar();
+	}
+
+
+}
+
+void Game::imguiTopBarWindows() {
+	if (m_showingNewFile) {
+		ImGui::SetNextWindowSize(ImVec2(550, 550));
+		if (ImGui::Begin("Create new File thing", &m_showingNewFile)) {
+			ImGui::Text("planetSize thing");
+			static float createNewPlanetSize = 1;
+			ImGui::InputFloat("##value", &createNewPlanetSize, 1.0f);
+			if (createNewPlanetSize < 10)
+				createNewPlanetSize = 10;
+			ImGui::Text("PATH: if time exists, include native window folder selection window thing");
+			ImGui::End();
+		}
+
+	}
+	if (m_showingOpenFile) {
+		ImGui::SetNextWindowSize(ImVec2(550, 550));
+		if (ImGui::Begin("Open File thing", &m_showingOpenFile)) {
+
+			ImGui::Text("PATH: if time exists, include native window folder selection window thing");
+			ImGui::End();
+		}
+
+	}
+	if (m_SaveFileAs) {
+		ImGui::SetNextWindowSize(ImVec2(550, 550));
+		if (ImGui::Begin("Save File thing as", &m_SaveFileAs)) {
+
+			ImGui::Text("PATH: if time exists, include native window folder selection window thing");
+			ImGui::End();
+		}
+
+	}
+
 }
 
 void Game::imguiTimeline() {
+	if (!ImGui::Begin("Timeline")) {
+		ImGui::End();
+		return;
+	}
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
-	ImGui::Begin("Timeline");
 
-	ImGui::Text("Timeline things");
+	ImGui::Text("Timeline things", &m_showingTimeline);
 	/*std::string text = "Things here " ICON_FA_PLUS;
 	auto width = ImGui::CalcTextSize(text.c_str());
 	ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvailWidth() - width.x, ImGui::GetCursorPosY()));
@@ -297,7 +450,7 @@ void Game::imguiTimeline() {
 		"Compare with current"
 	};
 
-	
+
 	ImGui::SetNextItemWidth(100.0f);
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Branch");
@@ -307,7 +460,7 @@ void Game::imguiTimeline() {
 	ImGui::SameLine();
 	if (ImGui::Button("Branch", { 60,30 }))
 		bm.addBranch();
-	
+
 	// Make Merge button faded if it isn't possible to merge
 	if (!bm.canMerge())
 	{
@@ -331,7 +484,8 @@ void Game::imguiTimeline() {
 
 	// Scroll area
 	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
-	ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
+	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
+		ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
 
 	// Draw buttons
 	bool first = true;
@@ -341,7 +495,7 @@ void Game::imguiTimeline() {
 		first = false;
 		bool cc = bm.isCurretCommand(cmd);
 		if (cc) {
-			ImGui::PushStyleColor(ImGuiCol_Button, {0.4,0.5,1.0,1.0});
+			ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
 		}
 		if (ImGui::Button(cmd.icon)) {
 			bm.setCurrentCommand(cmd);
@@ -368,6 +522,164 @@ void Game::imguiTimeline() {
 	}
 
 	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
+	ImGui::PopStyleVar();
+	ImGui::End();
+}
+
+void Game::imguiGraph() {
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
+	if (!ImGui::Begin("Graph", &m_showingTimelineGraph, ImGuiWindowFlags_HorizontalScrollbar)) {
+		ImGui::End();
+		ImGui::PopStyleVar();
+		return;
+	}
+
+	// enum, struct and vector should be class variables
+	enum CommitType {
+		COMMAND, MERGE, NEWBRANCH
+	};
+	struct Commit {
+		//Command cmd;
+		std::string msg;
+		std::string branch;
+		CommitType type;
+		std::string otherBranch;
+	};
+	std::vector<Commit> commits;
+
+	// Fill with dummy commits to dummy branches
+	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "Master" });
+	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	commits.push_back({ "Moved thing", "Banana", NEWBRANCH, "Master" });
+	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	for (int i = 0; i < 3; i++) {
+		commits.push_back({ "Placed tree", "Feature", COMMAND, "" });
+	}
+	commits.push_back({ "Placed tree", "Feature", MERGE, "Master" });
+	commits.push_back({ "Moved thing", "Banana", COMMAND, "" });
+
+	static ImVec2 lastGraphSize = ImVec2(40, 40);
+	ImGui::BeginChild("##ScrollingRegion", lastGraphSize, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+	ImVec2 p = ImGui::GetCursorScreenPos();
+	p.x += 20.0f;
+	p.y += 20.0f;
+	auto drawlist = ImGui::GetWindowDrawList();
+
+	float distanceBetweenCommits = 40.f;
+	float distanceBetweenBranches = 20.f;
+	float commitRadius = 5.f;
+
+	struct BranchDrawInfo {
+		float yOffset;
+		float lastCommitX;
+		ImU32 color;
+	};
+	// Internal map rebuilt on every draw
+	std::map<std::string, BranchDrawInfo> activeBranches;
+	float lastOffset = -distanceBetweenBranches;
+	std::hash<std::string> hasher;
+
+	ImVec2 maxCoord = p;
+	bool first = true;
+	for (int i = 0; i < commits.size(); i++) {
+		auto commit = commits[i];
+		if (activeBranches.find(commit.branch) == activeBranches.end()) {
+			// commit on branch not known before
+			BranchDrawInfo info;
+			srand(hasher(commit.branch));
+			info.color = IM_COL32(rand() % 255 + 10, rand() % 255 + 10, rand() % 255 + 10, 255); // Random bright-ish color
+			info.lastCommitX = p.x + max(i-1, 0) * distanceBetweenCommits;
+			lastOffset = info.yOffset = lastOffset + distanceBetweenBranches;
+			activeBranches.insert({ commit.branch, info });
+		}
+		BranchDrawInfo& info = activeBranches[commit.branch];
+
+		float x = p.x + i * distanceBetweenCommits;
+		float y = p.y + info.yOffset;
+		float lastX = info.lastCommitX;
+		//float lastX = p.x + (i - 1) * distanceBetweenCommits;
+		float lastY = y;
+		ImU32 circleColor = info.color;
+
+		if (!first) {
+			if (commit.type == NEWBRANCH) {
+				BranchDrawInfo otherBranch = activeBranches[commit.otherBranch];
+				float otherY = p.y + otherBranch.yOffset;
+				// update lastY to draw diagonal
+				lastY = p.y + otherBranch.yOffset;
+			}
+			else if (commit.type == MERGE) {
+				BranchDrawInfo otherBranch = activeBranches[commit.otherBranch];
+				float otherY = p.y + otherBranch.yOffset;
+				y = p.y + otherBranch.yOffset;
+				// Draw horizontal line on branch merged into
+				drawlist->AddLine(ImVec2(otherBranch.lastCommitX, y), ImVec2(x, y), otherBranch.color, 3.0f);
+				circleColor = otherBranch.color;
+			}
+			drawlist->AddLine(ImVec2(lastX, lastY), ImVec2(x, y), info.color, 3.0f);
+			info.lastCommitX = x;
+		}
+		drawlist->AddCircleFilled(ImVec2(x, y), commitRadius, circleColor);
+		maxCoord.x = x;
+		maxCoord.y = max(maxCoord.y, y);
+
+		first = false;
+	}
+	//ImGui::SetWindowSize(ImVec2(maxCoord.x - p.x, maxCoord.y - p.y));
+	lastGraphSize = ImVec2(maxCoord.x - p.x + 40.f, maxCoord.y - p.y + 40.f);
+	ImGui::EndChild();
+
+
+	//ImTriangleContainsPoint(p, p, p, p);
 	ImGui::End();
 	ImGui::PopStyleVar();
+}
+
+void Game::imguiTools() {
+	ImGui::SetNextWindowSizeConstraints(ImVec2(70, 100), ImVec2(70, 10000));
+	if (ImGui::Begin("TOOLS", &m_showingToolbar)) {
+		ImGui::Text(std::to_string(ImGui::GetWindowDockID()).c_str());
+
+		ImGuiIO& io = ImGui::GetIO();
+		ImTextureID my_tex_id = io.Fonts->TexID;
+		float my_tex_w = (float)io.Fonts->TexWidth;
+		float my_tex_h = (float)io.Fonts->TexHeight;
+
+		for (int i = 0; i < 10; i++) {
+			if (ImGui::ImageButton(my_tex_id, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), 1, ImVec4(0.0f, 0.0f, 0.0f, 1.0f))) {
+
+
+			}
+			if (ImGui::IsItemHovered())
+			{
+
+				ImGui::BeginTooltip();
+				ImGui::Text(std::string("Tool " + std::to_string(i)).c_str());
+				ImGui::EndTooltip();
+			}
+		}
+
+
+
+
+
+
+
+		ImGui::End();
+	}
+}
+
+void Game::imguiToolOptions() {
+	//ImGui::SetNextWindowSize(ImVec2(550, 550));
+	if (ImGui::Begin("SETTINGS", &m_showingToolOptions)) {
+		ImGui::Text(std::to_string(ImGui::GetWindowDockID()).c_str());
+
+
+
+
+		ImGui::End();
+	}
+
 }
