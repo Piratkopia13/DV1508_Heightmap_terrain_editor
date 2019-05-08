@@ -44,6 +44,7 @@ private:
 	bool m_SaveFileAs;
 
 	bool m_showingTimeline;
+	bool m_showingTimelineGraph;
 	bool m_showingToolbar;
 	bool m_showingToolOptions;
 

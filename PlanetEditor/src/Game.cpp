@@ -44,6 +44,7 @@ Game::~Game() {
 void Game::init() {
 	m_fbxImporter = std::make_unique<PotatoFBXImporter>();
 	std::cout << "Loading fbx models.." << std::endl;
+	imguiInit();
 
 	float floorHalfWidth = 50.0f;
 	float floorTiling = 5.0f;
@@ -176,10 +177,10 @@ void Game::render(double dt) {
 }
 
 void Game::imguiInit() {
-	m_showingTimeline = false;
-	m_showingToolbar = false;
-	m_showingToolOptions = false;
-
+	m_showingTimeline = true;
+	m_showingToolbar = true;
+	m_showingToolOptions = true;
+	m_showingTimelineGraph = true;
 
 }
 
@@ -270,7 +271,8 @@ void Game::imguiFunc() {
 		imguiTools();
 	if (m_showingToolOptions)
 		imguiToolOptions();
-	imguiGraph();
+	if(m_showingTimelineGraph)
+		imguiGraph();
 }
 
 void Game::imguiTopBar() {
@@ -311,6 +313,9 @@ void Game::imguiTopBar() {
 		if (ImGui::BeginMenu("View")) {
 			if (ImGui::MenuItem("History Bar")) {
 				m_showingTimeline = true;
+			}
+			if (ImGui::MenuItem("Graph")) {
+				m_showingTimelineGraph = true;
 			}
 			if (ImGui::MenuItem("Tools")) {
 				m_showingToolbar = true;
@@ -520,7 +525,7 @@ void Game::imguiTimeline() {
 
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-	if (!ImGui::Begin("Graph", 0, ImGuiWindowFlags_HorizontalScrollbar)) {
+	if (!ImGui::Begin("Graph", &m_showingTimelineGraph, ImGuiWindowFlags_HorizontalScrollbar)) {
 		ImGui::End();
 		ImGui::PopStyleVar();
 		return;
