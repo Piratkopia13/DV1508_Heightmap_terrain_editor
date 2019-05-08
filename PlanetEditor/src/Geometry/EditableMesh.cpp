@@ -5,6 +5,8 @@
 #include "../DX12/DX12VertexBuffer.h"
 #include "../../assets/shaders/CommonRT.hlsl"
 
+#include <chrono>
+
 // Currently creates a width by height large mesh with specified number of vertices
 EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY) {
 
@@ -83,6 +85,7 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command comm
 	int maxIntDistX = int(radius / m_vertLengthX);
 	int maxIntDistY = int(radius / m_vertLengthY);
 	bool rayHit = false;
+	auto t1 = std::chrono::high_resolution_clock::now();
 	for (size_t y = 0; y < m_numVertsY - 1; y++) {
 		for (size_t x = 0; x < m_numVertsX - 1; x++) {
 			unsigned int leftBottomIndex = (y * (m_numVertsX - 1) + x) * 6;
@@ -128,6 +131,10 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command comm
 		if (rayHit)
 			break;
 	}
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::cout << "Ray-Triangle intersection took: " <<
+		std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() <<
+		" milliseconds." << std::endl;
 
 	if (rayHit) {
 		((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex));

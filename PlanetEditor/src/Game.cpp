@@ -89,20 +89,7 @@ void Game::init() {
 	
 	unsigned int offset = 0;
 	{
-		// Set up floor mesh
-		/*m_meshes.emplace_back(static_cast<DX12Mesh*>(getRenderer().makeMesh()));
-		m_meshes.back()->setName("Floor");
-		constexpr auto numVertices = std::extent<decltype(floorVertices)>::value;
-		constexpr auto numIndices = std::extent<decltype(floorIndices)>::value;
-		m_vertexBuffers.emplace_back(getRenderer().makeVertexBuffer(sizeof(floorVertices), VertexBuffer::DATA_USAGE::STATIC));
-		m_vertexBuffers.back()->setData(floorVertices, sizeof(floorVertices), offset);
-		m_indexBuffers.emplace_back(getRenderer().makeIndexBuffer(sizeof(floorIndices), IndexBuffer::STATIC));
-		m_indexBuffers.back()->setData(floorIndices, sizeof(floorIndices), offset);
-		m_meshes.back()->setIABinding(m_vertexBuffers.back().get(), m_indexBuffers.back().get(), offset, numVertices, numIndices, sizeof(Vertex));
-		m_meshes.back()->technique = m_technique.get();
-		m_meshes.back()->setTexture2DArray(m_floorTexArray.get());*/
-
-		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 100.f, 100.f, 100, 100));
+		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 200.f, 200.f, 100, 100));
 		m_editableMesh->getMesh()->technique = m_technique.get();
 		m_editableMesh->getMesh()->setTexture2DArray(m_floorTexArray.get());
 		m_meshes.emplace_back(m_editableMesh->getMesh());
