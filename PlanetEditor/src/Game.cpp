@@ -318,7 +318,7 @@ void Game::imguiTopBar() {
 				PostQuitMessage(10);
 			}
 
-			ImGui::EndMenu();
+		ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("Edit")) {
 			if (ImGui::MenuItem("Undo")) {
@@ -328,7 +328,7 @@ void Game::imguiTopBar() {
 
 			}
 
-			ImGui::EndMenu();
+		ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("View")) {
 			if (ImGui::MenuItem("History Bar"), "", &m_showingTimeline) {
@@ -340,7 +340,7 @@ void Game::imguiTopBar() {
 			if (ImGui::MenuItem("Tool Settings"), "", &m_showingToolOptions) {
 			}
 
-			ImGui::EndMenu();
+		ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("Branch")) {
 			if (ImGui::MenuItem("New Local Branch")) {
@@ -366,7 +366,7 @@ void Game::imguiTopBar() {
 
 			}
 
-			ImGui::EndMenu();
+		ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("Help")) {
 			if (ImGui::MenuItem("View Help")) {
@@ -384,7 +384,7 @@ void Game::imguiTopBar() {
 
 			}
 
-			ImGui::EndMenu();
+		ImGui::EndMenu();
 		}
 
 		//if (ImGui::BeginMenu("Docking"))
@@ -404,10 +404,8 @@ void Game::imguiTopBar() {
 		//	ImGui::EndMenu();
 		//}
 
-		ImGui::EndMenuBar();
 	}
-
-
+	ImGui::EndMenuBar();
 }
 
 void Game::imguiTopBarWindows() {
@@ -429,8 +427,8 @@ void Game::imguiTopBarWindows() {
 		if (ImGui::Begin("Open File thing", &m_showingOpenFile)) {
 
 			ImGui::Text("PATH: if time exists, include native window folder selection window thing");
-			ImGui::End();
 		}
+		ImGui::End();
 
 	}
 	if (m_SaveFileAs) {
@@ -438,8 +436,8 @@ void Game::imguiTopBarWindows() {
 		if (ImGui::Begin("Save File thing as", &m_SaveFileAs)) {
 
 			ImGui::Text("PATH: if time exists, include native window folder selection window thing");
-			ImGui::End();
 		}
+		ImGui::End();
 
 	}
 
@@ -680,8 +678,8 @@ void Game::imguiTools() {
 
 
 
-		ImGui::End();
 	}
+	ImGui::End();
 }
 
 void Game::imguiToolOptions() {
@@ -701,7 +699,7 @@ void Game::imguiToolOptions() {
 		//ImGui::Slider
 
 
-		ImGui::End();
 	}
+	ImGui::End();
 
 }
