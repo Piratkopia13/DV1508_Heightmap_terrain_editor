@@ -51,6 +51,11 @@ private:
 
 
 
+
+	int m_toolWidth;
+	int m_toolStrenth;
+
+
 private:
 	DX12Renderer* m_dxRenderer;
 

@@ -47,6 +47,9 @@ void Game::init() {
 	std::cout << "Loading fbx models.." << std::endl;
 	imguiInit();
 
+	m_toolWidth = 4.0f;
+	m_toolStrenth = 1.0f;
+
 	float floorHalfWidth = 50.0f;
 	float floorTiling = 5.0f;
 	const Vertex floorVertices[] = {
@@ -185,10 +188,19 @@ void Game::render(double dt) {
 }
 
 void Game::imguiInit() {
+	
+	m_showingNewFile = false;
+	m_showingOpenFile = false;
+	m_SaveFileAs = false;
+	
 	m_showingTimeline = true;
 	m_showingToolbar = true;
 	m_showingToolOptions = true;
 	m_showingTimelineGraph = true;
+
+	m_toolWidth = 1;
+	m_toolStrenth = 1;
+
 
 }
 
@@ -319,17 +331,13 @@ void Game::imguiTopBar() {
 			ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("View")) {
-			if (ImGui::MenuItem("History Bar")) {
-				m_showingTimeline = true;
+			if (ImGui::MenuItem("History Bar"), "", &m_showingTimeline) {
 			}
-			if (ImGui::MenuItem("Graph")) {
-				m_showingTimelineGraph = true;
+			if (ImGui::MenuItem("Graph"), "", &m_showingTimelineGraph) {
 			}
-			if (ImGui::MenuItem("Tools")) {
-				m_showingToolbar = true;
+			if (ImGui::MenuItem("Tools"), &m_showingToolbar) {
 			}
-			if (ImGui::MenuItem("Tool Settings")) {
-				m_showingToolOptions = true;
+			if (ImGui::MenuItem("Tool Settings"), "", &m_showingToolOptions) {
 			}
 
 			ImGui::EndMenu();
@@ -643,9 +651,9 @@ void Game::imguiGraph() {
 }
 
 void Game::imguiTools() {
-	ImGui::SetNextWindowSizeConstraints(ImVec2(70, 100), ImVec2(70, 10000));
-	if (ImGui::Begin("TOOLS", &m_showingToolbar)) {
-		ImGui::Text(std::to_string(ImGui::GetWindowDockID()).c_str());
+	//ImGui::SetNextWindowSizeConstraints(ImVec2(70, 100), ImVec2(70, 10000));
+	if (ImGui::Begin("TOOLS", &m_showingToolbar, ImGuiWindowFlags_AlwaysAutoResize)) {
+		//ImGui::Text(std::to_string(ImGui::GetWindowDockID()).c_str());
 
 		ImGuiIO& io = ImGui::GetIO();
 		ImTextureID my_tex_id = io.Fonts->TexID;
@@ -678,10 +686,20 @@ void Game::imguiTools() {
 
 void Game::imguiToolOptions() {
 	//ImGui::SetNextWindowSize(ImVec2(550, 550));
-	if (ImGui::Begin("SETTINGS", &m_showingToolOptions)) {
-		ImGui::Text(std::to_string(ImGui::GetWindowDockID()).c_str());
+	if (ImGui::Begin("SETTINGS", &m_showingToolOptions, ImGuiWindowFlags_AlwaysAutoResize)) {
+		//ImGui::Text(std::to_string(ImGui::GetWindowDockID()).c_str());
 
-
+		//ImGui::DragFloat("##value", &m_toolWidth, 1, 1.0f, 100.0f);
+		//
+		//ImGui::DragFloat("##value", &m_toolWidth, 1, 1.0f, 100.0f);
+		ImGui::Text("Something");
+		ImGui::SameLine();
+		ImGui::SliderInt("Number of lines", &m_toolWidth, 1, 100);
+		ImGui::SameLine();
+		ImGui::Text("Something");
+		ImGui::SameLine();
+		ImGui::SliderInt("Number of lines", &m_toolWidth, 1, 100);
+		//ImGui::Slider
 
 
 		ImGui::End();
