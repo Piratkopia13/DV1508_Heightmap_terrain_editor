@@ -79,9 +79,8 @@ IndexBuffer * EditableMesh::getIndexBuffer() {
 	return m_indexBuffer.get();
 }
 
-void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command command*/) {
-	float radius = 20.f;
-	float changeY = 3.f;
+void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir, float radius, float height/*, Command command*/) {
+	float changeY = height;
 	int maxIntDistX = int(radius / m_vertLengthX);
 	int maxIntDistY = int(radius / m_vertLengthY);
 	bool rayHit = false;

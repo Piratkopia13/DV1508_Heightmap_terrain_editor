@@ -19,7 +19,7 @@ public:
 	VertexBuffer* getVertexBuffer();
 	IndexBuffer* getIndexBuffer();
 
-	void doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command command*/);
+	void doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir, float radius, float height/*, Command command*/);
 	
 	// Returns intersection point
 	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);
