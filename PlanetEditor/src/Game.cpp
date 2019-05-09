@@ -159,11 +159,11 @@ void Game::update(double dt) {
 		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
 		if (!Input::IsKeyDown('V'))
 			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, 20.f, 3.f);
+				m_editableMesh->doCommand(rayOrigin, rayDir, m_toolWidth, m_toolStrenth);
 			});
 		else
 			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, 20.f, -3.f);
+				m_editableMesh->doCommand(rayOrigin, rayDir, m_toolWidth, -m_toolStrenth);
 			});
 	}
 
@@ -692,13 +692,12 @@ void Game::imguiToolOptions() {
 		//ImGui::DragFloat("##value", &m_toolWidth, 1, 1.0f, 100.0f);
 		//
 		//ImGui::DragFloat("##value", &m_toolWidth, 1, 1.0f, 100.0f);
-		ImGui::Text("Something");
+		ImGui::Text("Tool");
 		ImGui::SameLine();
-		ImGui::SliderInt("Number of lines", &m_toolWidth, 1, 100);
+		ImGui::SliderFloat("Width", &m_toolWidth, 1.f, 100.f);
 		ImGui::SameLine();
-		ImGui::Text("Something");
 		ImGui::SameLine();
-		ImGui::SliderInt("Number of lines", &m_toolWidth, 1, 100);
+		ImGui::SliderFloat("Strength", &m_toolStrenth, 1.f, 100.f);
 		//ImGui::Slider
 
 

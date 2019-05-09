@@ -52,8 +52,8 @@ private:
 
 
 
-	int m_toolWidth;
-	int m_toolStrenth;
+	float m_toolWidth;
+	float m_toolStrenth;
 
 
 private:
