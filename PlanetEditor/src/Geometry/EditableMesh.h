@@ -4,25 +4,40 @@ class DX12Mesh;
 class DX12Renderer;
 class VertexBuffer;
 class IndexBuffer;
+struct Vertex;
 
 class EditableMesh {
 public:
-	EditableMesh(DX12Renderer* renderer, float width, float height, int numVertsX, int numVertsY);
+	EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY);
 	~EditableMesh();
 
-	struct Vertex {
+	/*struct Vertex {
 		float position[3];
-	};
+	};*/
+
+	DX12Mesh* getMesh();
+	VertexBuffer* getVertexBuffer();
+	IndexBuffer* getIndexBuffer();
+
+	void doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command command*/);
+	
+	// Returns intersection point
+	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);
 
 private:
 	std::unique_ptr<DX12Mesh> m_mesh;
 	std::unique_ptr<VertexBuffer> m_vertexBuffer;
 	std::unique_ptr<IndexBuffer> m_indexBuffer;
 
+	Vertex* vertices;
+	unsigned int* indices;
+
 	float m_width;
 	float m_height;
-	int numVertsX;
-	int numVertsY;
+	float m_vertLengthX;
+	float m_vertLengthY;
+	size_t m_numVertsX;
+	size_t m_numVertsY;
 
 };
 

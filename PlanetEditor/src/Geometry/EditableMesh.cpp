@@ -2,39 +2,42 @@
 #include "EditableMesh.h"
 #include "../DX12/DX12Mesh.h"
 #include "../DX12/DX12Renderer.h"
-//#include "../DX12/DX12VertexBuffer.h"
-//#include "../DX12/DX12IndexBuffer.h"
+#include "../DX12/DX12VertexBuffer.h"
+#include "../../assets/shaders/CommonRT.hlsl"
+
+#include <chrono>
 
 // Currently creates a width by height large mesh with specified number of vertices
-EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, int numVertsX, int numVertsY) {
+EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY) {
 
-	throw(std::logic_error("Not yet fully implemented"));
+	assert(numVertsX > 2 && numVertsY > 2 && width > 0.f && height > 0.f);
 
 	int numVertices = numVertsX * numVertsY;
 	int numIndices = (numVertsX - 1) * (numVertsY - 1) * 6;
 	m_mesh = std::unique_ptr<DX12Mesh>(static_cast<DX12Mesh*>(renderer->makeMesh()));
-	m_vertexBuffer = std::unique_ptr<VertexBuffer>(renderer->makeVertexBuffer(numVertices, VertexBuffer::DATA_USAGE::DYNAMIC));
-	m_indexBuffer = std::unique_ptr<IndexBuffer>(renderer->makeIndexBuffer(numIndices, IndexBuffer::DATA_USAGE::STATIC));
+	m_vertexBuffer = std::unique_ptr<VertexBuffer>(renderer->makeVertexBuffer(numVertices * sizeof(Vertex), VertexBuffer::DATA_USAGE::DYNAMIC));
+	m_indexBuffer = std::unique_ptr<IndexBuffer>(renderer->makeIndexBuffer(numIndices * sizeof(unsigned int), IndexBuffer::DATA_USAGE::STATIC));
 	m_mesh->setIABinding(m_vertexBuffer.get(), m_indexBuffer.get(), 0, numVertices, numIndices, sizeof(Vertex));
-	// TODO: Set the technique
-	//m_meshes.back()->technique = m_technique.get();
-	// TODO: Set the texture(s)
-	//m_meshes.back()->setTexture2DArray(m_floorTexArray.get());
 
-	// TODO: Fix proper vertex
-	Vertex* vertices = new Vertex[numVertices];
-	unsigned int* indices = new unsigned int[numIndices];
+	m_numVertsX = numVertsX;
+	m_numVertsY = numVertsY;
+	vertices = new Vertex[numVertices];
+	indices = new unsigned int[numIndices];
 	
-	float xVertLength = width / float(numVertsX);
-	float yVertLength = height / float(numVertsY);
+	m_vertLengthX = width / float(numVertsX);
+	m_vertLengthY = height / float(numVertsY);
 
 	for (size_t y = 0; y < numVertsY; y++) {
 		for (size_t x = 0; x < numVertsX; x++) {
-			vertices[y * numVertsX + x] = {x * xVertLength, 0, y * yVertLength};
+			vertices[y * numVertsX + x] = { 	
+				XMFLOAT3{x * m_vertLengthX, 0, y * m_vertLengthY}, // position
+				XMFLOAT3{0.f, 1.f, 0.f},  // normal
+				XMFLOAT2{float(x) / float(numVertsX - 1), float(y) / float(numVertsY - 1)} // uv
+			};
 
 			// Add square indices (2 triangles)
-			if (x < numVertsX - 2 && y < numVertsY - 2) {
-				unsigned int leftBottomIndex = (y * (numVertsY - 1) + x) * 6;
+			if (x < numVertsX - 1 && y < numVertsY - 1) {
+				unsigned int leftBottomIndex = (y * (numVertsX - 1) + x) * 6;
 				unsigned int leftBottomVertIndex = (y * numVertsX + x);
 				/*
 					 Indices
@@ -45,21 +48,133 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, in
 				*/
 				// Bottom left triangle
 				indices[leftBottomIndex + 0] = leftBottomVertIndex; // 0
-				indices[leftBottomIndex + 1] = leftBottomVertIndex + 1; // 1
-				indices[leftBottomIndex + 2] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 1] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 2] = leftBottomVertIndex + 1; // 1
 
 				// Top right triangle
 				indices[leftBottomIndex + 3] = leftBottomVertIndex + 1; // 1
-				indices[leftBottomIndex + 4] = leftBottomVertIndex + numVertsX + 1; // 3
-				indices[leftBottomIndex + 5] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 4] = leftBottomVertIndex + numVertsX; // 2
+				indices[leftBottomIndex + 5] = leftBottomVertIndex + numVertsX + 1; // 3
 			}
 		}
 	}
 
-	m_vertexBuffer->setData(vertices, numVertices, 0);
-	m_indexBuffer->setData(indices, numIndices, 0);
+	m_vertexBuffer->setData(vertices, numVertices * sizeof(Vertex), 0);
+	m_indexBuffer->setData(indices, numIndices * sizeof(unsigned int), 0);
 }
 
 
 EditableMesh::~EditableMesh() {
+}
+
+DX12Mesh * EditableMesh::getMesh() {
+	return m_mesh.get();
+}
+
+VertexBuffer * EditableMesh::getVertexBuffer() {
+	return m_vertexBuffer.get();
+}
+
+IndexBuffer * EditableMesh::getIndexBuffer() {
+	return m_indexBuffer.get();
+}
+
+void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir/*, Command command*/) {
+	float radius = 20.f;
+	float changeY = 3.f;
+	int maxIntDistX = int(radius / m_vertLengthX);
+	int maxIntDistY = int(radius / m_vertLengthY);
+	bool rayHit = false;
+	auto t1 = std::chrono::high_resolution_clock::now();
+	for (size_t y = 0; y < m_numVertsY - 1; y++) {
+		for (size_t x = 0; x < m_numVertsX - 1; x++) {
+			unsigned int leftBottomIndex = (y * (m_numVertsX - 1) + x) * 6;
+			// Bottom left triangle
+			XMFLOAT3 p0F = vertices[indices[leftBottomIndex + 0]].position;
+			XMFLOAT3 p1F = vertices[indices[leftBottomIndex + 1]].position;
+			XMFLOAT3 p2F = vertices[indices[leftBottomIndex + 2]].position;
+			XMVECTOR p0 = DirectX::XMLoadFloat3(&p0F);
+			XMVECTOR p1 = DirectX::XMLoadFloat3(&p1F);
+			XMVECTOR p2 = DirectX::XMLoadFloat3(&p2F);
+			XMFLOAT3 intersectionPoint;
+			// Ray hit
+			if (rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint))
+				rayHit = true;
+
+			// Top right triangle
+			p0F = vertices[indices[leftBottomIndex + 3]].position;
+			p1F = vertices[indices[leftBottomIndex + 4]].position;
+			p2F = vertices[indices[leftBottomIndex + 5]].position;
+			p0 = DirectX::XMLoadFloat3(&p0F);
+			p1 = DirectX::XMLoadFloat3(&p1F);
+			p2 = DirectX::XMLoadFloat3(&p2F);
+			// Ray hit (skip if previous hit)
+			if (!rayHit && rayTriangleIntersect(rayOrigin, rayDir, p0, p1, p2, intersectionPoint))
+				rayHit = true;
+
+			if (rayHit) {
+				int middleX = int(round(intersectionPoint.x / m_vertLengthX));
+				// Y on the mesh in world coordinates is Z
+				int middleY = int(round(intersectionPoint.z / m_vertLengthY));
+				for (size_t y_2 = max(0, middleY - maxIntDistY); y_2 < min(m_numVertsY, middleY + maxIntDistY); y_2++) {
+					for (size_t x_2 = max(0, middleX - maxIntDistX); x_2 < min(m_numVertsX, middleX + maxIntDistX); x_2++) {
+						float a = std::powf(float(y_2) * m_vertLengthY - float(middleY) * m_vertLengthY, 2.f);
+						float b = std::powf(float(x_2) * m_vertLengthX - float(middleX) * m_vertLengthX, 2.f);
+						float dist = std::sqrtf(a + b);
+						if (dist <= radius)
+							vertices[y_2 * m_numVertsX + x_2].position.y += changeY * ((radius - dist) / radius);
+					}
+				}
+				break;
+			}
+		}
+		if (rayHit)
+			break;
+	}
+	auto t2 = std::chrono::high_resolution_clock::now();
+	std::cout << "Ray-Triangle intersection took: " <<
+		std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() <<
+		" milliseconds." << std::endl;
+
+	if (rayHit) {
+		((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex));
+		std::cout << "Hit!" << std::endl;
+	}
+}
+
+// TODO: Move to utility functions
+bool EditableMesh::rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint) {
+	XMVECTOR intersectionPoint;
+
+	const float EPSILON = 0.0000001;
+	XMVECTOR edge1, edge2, h, s, q;
+	float a, f, u, v;
+	edge1 = p1 - p0;
+	edge2 = p2 - p0;
+	h = DirectX::XMVector3Cross(rayDir, edge2);
+	XMFLOAT3 result;
+	DirectX::XMStoreFloat3(&result, DirectX::XMVector3Dot(edge1, h));
+	a = result.x;
+	if (a > -EPSILON && a < EPSILON)
+		return false;    // This ray is parallel to this triangle.
+	f = 1.0 / a;
+	s = rayOrigin - p0;
+	DirectX::XMStoreFloat3(&result, DirectX::XMVector3Dot(s, h));
+	u = f * (result.x);
+	if (u < 0.0 || u > 1.0)
+		return false;
+	q = DirectX::XMVector3Cross(s, edge1);
+	DirectX::XMStoreFloat3(&result, DirectX::XMVector3Dot(rayDir, q));
+	v = f * result.x;
+	if (v < 0.0 || u + v > 1.0)
+		return false;
+	// At this stage we can compute t to find out where the intersection point is on the line.
+	DirectX::XMStoreFloat3(&result, DirectX::XMVector3Dot(edge2, q));
+	float t = f * result.x;
+	if (t > EPSILON) { // ray intersection
+		DirectX::XMStoreFloat3(&outIntersectionPoint, rayOrigin + rayDir * t);
+		return true;
+	}
+	else // This means that there is a line intersection but not a ray intersection.
+		return false;
 }
