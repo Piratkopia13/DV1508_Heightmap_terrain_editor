@@ -62,20 +62,35 @@ private:
 	int m_historyWarning;
 	bool m_toolHelpText;
 
-
-	struct ToolInfo {
-		std::string icon;
-		std::string name;
-		std::string shortcut;
-		std::string helpText;
-		ToolInfo(std::string _icon, std::string _name, std::string _shortcut, std::string _helpText) {
-			icon = _icon;
-			name = _name;
-			shortcut = _shortcut;
-			helpText = _helpText;
+	struct Tool {
+		struct ToolInfo {
+			std::string icon;
+			std::string name;
+			std::string shortcut;
+			std::string helpText;
+			ToolInfo() {
+				icon = "N/A";
+				name = "N/A";
+				shortcut = "N/A";
+				helpText = "N/A";
+			}
+			ToolInfo(std::string _icon, std::string _name, std::string _shortcut, std::string _helpText) {
+				icon = _icon;
+				name = _name;
+				shortcut = _shortcut;
+				helpText = _helpText;
+			}
+		} info;
+		std::function<void(Vertex*, std::vector<std::pair<unsigned int, float>>)> func;
+		Tool(ToolInfo _info, std::function<void(Vertex*, std::vector<std::pair<unsigned int, float>>)> _func) {
+			info = _info;
+			func = _func;
 		}
+
 	};
-	std::vector<ToolInfo> m_tools;
+	Tool* m_currentTool;
+	
+	std::vector<Tool> m_tools;
 
 
 

@@ -183,18 +183,12 @@ void Game::update(double dt) {
 			}
 		};
 
-		EditableMesh::VertexCommand cmd1 = { m_toolWidth, addHeight };
-		EditableMesh::VertexCommand cmd2 = { m_toolWidth, setSameHeight };
-		if (!Input::IsKeyDown('V')) {
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, cmd1);
-			});
-		}
-		else {
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd2] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, cmd2);
-			});
-		}
+		EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
+
+		m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
+			m_editableMesh->doCommand(rayOrigin, rayDir, cmd1);
+		});
+		
 		/* 
 		*
 		*		END OF EXAMPLE OF HOW TO USE COMMANDS 
@@ -242,9 +236,26 @@ void Game::imguiInit() {
 
 	m_historyWarning = 30;
 	m_toolHelpText = true;
-
-	m_tools.emplace_back(ICON_FA_PAINT_BRUSH, "potato", "1", "this high and low things");
-	m_tools.emplace_back(ICON_FA_PAINT_ROLLER, "smoothing", "2", "smoothing things of stuff");
+	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "1", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		for each (auto vertex in vectorStuff) {
+			vertices[vertex.first].position.y += m_toolStrength * std::sin(1.57079632679f * vertex.second);
+		}
+		});
+	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_ROLLER, "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		float highestImpact = 0.f;
+		float height = 0.f;
+		for each (auto vertex in vectorStuff) {
+			if (vertex.second > highestImpact) {
+				height = vertices[vertex.first].position.y;
+				highestImpact = vertex.second;
+			}
+		}
+		for each (auto vertex in vectorStuff) {
+			vertices[vertex.first].position.y = height;
+		}
+		});
+	
+	m_currentTool = &m_tools[0];
 
 }
 
@@ -728,15 +739,14 @@ void Game::imguiTools() {
 	if (ImGui::Begin("TOOLS", &m_showingToolbar, ImGuiWindowFlags_AlwaysAutoResize)) {
 
 		for (int i = 0; i < m_tools.size(); i++) {
-			if (ImGui::Button(m_tools[i].icon.c_str())) {
-				// TODO: SET TOOL HERE
-
+			if (ImGui::Button(m_tools[i].info.icon.c_str())) {
+				m_currentTool = &m_tools[i];
 			}
 			if (ImGui::IsItemHovered()) {
 				ImGui::BeginTooltip();
-				std::string tooltipText = m_tools[i].name + " (" + m_tools[i].shortcut + ")";
+				std::string tooltipText = m_tools[i].info.name + " (" + m_tools[i].info.shortcut + ")";
 				if (m_toolHelpText)
-					tooltipText += "\n" + m_tools[i].helpText;
+					tooltipText += "\n" + m_tools[i].info.helpText;
 				ImGui::Text(tooltipText.c_str());
 				ImGui::EndTooltip();
 			}
