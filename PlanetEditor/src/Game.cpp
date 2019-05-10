@@ -116,7 +116,7 @@ void Game::init() {
 
 void Game::update(double dt) {
 
-	Input::SetInputAllowed((m_cursorInScene || Input::IsCursorHidden()) && !ImGui::IsAnyItemActive());
+	Input::SetInputAllowed((m_cursorInScene || Input::IsCursorHidden()));
 
 	if (Input::IsMouseButtonPressed(Input::MouseButton::RIGHT)) {
 		Input::showCursor(Input::IsCursorHidden());
@@ -157,13 +157,15 @@ void Game::update(double dt) {
 	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
 		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+		EditableMesh::VertexCommand cmd = {m_toolWidth, m_toolStrenth};
 		if (!Input::IsKeyDown('V'))
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, m_toolWidth, m_toolStrength);
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd] {
+				m_editableMesh->doCommand(rayOrigin, rayDir, cmd);
 			});
 		else
 			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, m_toolWidth, -m_toolStrength);
+				cmd.heightDiff = -cmd.heightDiff;
+				m_editableMesh->doCommand(rayOrigin, rayDir, cmd);
 			});
 	}
 
