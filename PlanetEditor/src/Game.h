@@ -34,6 +34,7 @@ private:
 	void imguiFunc();
 	void imguiTopBar();
 	void imguiTopBarWindows();
+	void imguiSettingsWindow();
 	void imguiTimeline();
 	void imguiGraph();
 	void imguiTools();
@@ -42,18 +43,40 @@ private:
 private:
 	bool m_showingNewFile;
 	bool m_showingOpenFile;
-	bool m_SaveFileAs;
+	bool m_showingSaveFileAs;
+	bool m_showingSettings;
 
 	bool m_showingTimeline;
 	bool m_showingTimelineGraph;
 	bool m_showingToolbar;
 	bool m_showingToolOptions;
+	bool m_showingBranches;
+	bool m_showingBranchHistory;
 
 
 
-
+private:
 	float m_toolWidth;
-	float m_toolStrenth;
+	float m_toolStrength;
+
+	int m_historyWarning;
+	bool m_toolHelpText;
+
+
+	struct ToolInfo {
+		std::string icon;
+		std::string name;
+		std::string shortcut;
+		std::string helpText;
+		ToolInfo(std::string _icon, std::string _name, std::string _shortcut, std::string _helpText) {
+			icon = _icon;
+			name = _name;
+			shortcut = _shortcut;
+			helpText = _helpText;
+		}
+	};
+	std::vector<ToolInfo> m_tools;
+
 
 
 private:
