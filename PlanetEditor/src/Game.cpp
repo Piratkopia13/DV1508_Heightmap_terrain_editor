@@ -157,16 +157,49 @@ void Game::update(double dt) {
 	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
 		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
-		EditableMesh::VertexCommand cmd = {m_toolWidth, m_toolStrenth};
-		if (!Input::IsKeyDown('V'))
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, cmd);
+
+		/* 
+		*
+		*		EXAMPLE OF HOW TO USE COMMANDS 
+		*
+		*/
+		auto setSameHeight = [&](Vertex* vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+			float highestImpact = 0.f;
+			float height = 0.f;
+			for each (auto vertex in vectorStuff) {
+				if (vertex.second > highestImpact) {
+					height = vertices[vertex.first].position.y;
+					highestImpact = vertex.second;
+				}
+			}
+			for each (auto vertex in vectorStuff) {
+				vertices[vertex.first].position.y = height;
+			}
+		};
+
+		auto addHeight = [&](Vertex* vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+			for each (auto vertex in vectorStuff) {
+				vertices[vertex.first].position.y += m_toolStrenth * std::sin(1.57079632679f * vertex.second);
+			}
+		};
+
+		EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_toolStrenth, addHeight };
+		EditableMesh::VertexCommand cmd2 = { m_toolWidth, m_toolStrenth, setSameHeight };
+		if (!Input::IsKeyDown('V')) {
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
+				m_editableMesh->doCommand(rayOrigin, rayDir, cmd1);
 			});
-		else
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir] {
-				cmd.heightDiff = -cmd.heightDiff;
-				m_editableMesh->doCommand(rayOrigin, rayDir, cmd);
+		}
+		else {
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd2] {
+				m_editableMesh->doCommand(rayOrigin, rayDir, cmd2);
 			});
+		}
+		/* 
+		*
+		*		END OF EXAMPLE OF HOW TO USE COMMANDS 
+		*
+		*/
 	}
 
 }

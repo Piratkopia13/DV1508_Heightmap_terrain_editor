@@ -80,11 +80,11 @@ IndexBuffer * EditableMesh::getIndexBuffer() {
 }
 
 void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd) {
-	float changeY = cmd.heightDiff;
 	int maxIntDistX = int(cmd.radius / m_vertLengthX);
 	int maxIntDistY = int(cmd.radius / m_vertLengthY);
 	bool rayHit = false;
 	float piHalf = 1.57079632679f;
+	std::vector<std::pair<unsigned int, float>> vertIndicesAndDst;
 	for (size_t y = 0; y < m_numVertsY - 1; y++) {
 		for (size_t x = 0; x < m_numVertsX - 1; x++) {
 			unsigned int leftBottomIndex = (y * (m_numVertsX - 1) + x) * 6;
@@ -121,7 +121,7 @@ void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, 
 						float b = std::powf(float(x_2) * m_vertLengthX - float(middleX) * m_vertLengthX, 2.f);
 						float dist = std::sqrtf(a + b);
 						if (dist <= cmd.radius) {
-							vertices[y_2 * m_numVertsX + x_2].position.y += changeY * std::sinf(1.57079632679f * ((cmd.radius - dist) / cmd.radius));
+							vertIndicesAndDst.push_back(std::pair(y_2 * m_numVertsX + x_2, (cmd.radius - dist) / cmd.radius));
 						}
 					}
 				}
@@ -132,8 +132,10 @@ void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, 
 			break;
 	}
 
-	if (rayHit)
+	if (rayHit) {
+		cmd.func(vertices, vertIndicesAndDst);
 		((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex));
+	}
 }
 
 // TODO: Move to utility functions

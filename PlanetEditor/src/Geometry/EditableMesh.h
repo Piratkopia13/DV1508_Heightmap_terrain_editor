@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 class DX12Mesh;
 class DX12Renderer;
 class VertexBuffer;
@@ -13,7 +15,7 @@ public:
 
 	struct VertexCommand {
 		float radius;
-		float heightDiff;
+		std::function<void(Vertex*, std::vector<std::pair<unsigned int, float>>)> func;
 	};
 	/*struct Vertex {
 		float position[3];
