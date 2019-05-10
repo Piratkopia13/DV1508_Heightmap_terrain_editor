@@ -79,13 +79,12 @@ IndexBuffer * EditableMesh::getIndexBuffer() {
 	return m_indexBuffer.get();
 }
 
-void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir, float radius, float height/*, Command command*/) {
-	float changeY = height;
-	int maxIntDistX = int(radius / m_vertLengthX);
-	int maxIntDistY = int(radius / m_vertLengthY);
+void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd) {
+	float changeY = cmd.heightDiff;
+	int maxIntDistX = int(cmd.radius / m_vertLengthX);
+	int maxIntDistY = int(cmd.radius / m_vertLengthY);
 	bool rayHit = false;
 	float piHalf = 1.57079632679f;
-	//auto t1 = std::chrono::high_resolution_clock::now();
 	for (size_t y = 0; y < m_numVertsY - 1; y++) {
 		for (size_t x = 0; x < m_numVertsX - 1; x++) {
 			unsigned int leftBottomIndex = (y * (m_numVertsX - 1) + x) * 6;
@@ -121,8 +120,8 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir, float radius, 
 						float a = std::powf(float(y_2) * m_vertLengthY - float(middleY) * m_vertLengthY, 2.f);
 						float b = std::powf(float(x_2) * m_vertLengthX - float(middleX) * m_vertLengthX, 2.f);
 						float dist = std::sqrtf(a + b);
-						if (dist <= radius) {
-							vertices[y_2 * m_numVertsX + x_2].position.y += changeY * std::sinf(1.57079632679f * ((radius - dist) / radius));
+						if (dist <= cmd.radius) {
+							vertices[y_2 * m_numVertsX + x_2].position.y += changeY * std::sinf(1.57079632679f * ((cmd.radius - dist) / cmd.radius));
 						}
 					}
 				}
@@ -132,15 +131,9 @@ void EditableMesh::doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir, float radius, 
 		if (rayHit)
 			break;
 	}
-	/*auto t2 = std::chrono::high_resolution_clock::now();
-	std::cout << "Ray-Triangle intersection took: " <<
-		std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count() <<
-		" milliseconds." << std::endl;*/
 
-	if (rayHit) {
+	if (rayHit)
 		((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex));
-		//std::cout << "Hit!" << std::endl;
-	}
 }
 
 // TODO: Move to utility functions

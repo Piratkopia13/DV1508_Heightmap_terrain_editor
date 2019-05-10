@@ -11,6 +11,10 @@ public:
 	EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY);
 	~EditableMesh();
 
+	struct VertexCommand {
+		float radius;
+		float heightDiff;
+	};
 	/*struct Vertex {
 		float position[3];
 	};*/
@@ -19,10 +23,12 @@ public:
 	VertexBuffer* getVertexBuffer();
 	IndexBuffer* getIndexBuffer();
 
-	void doCommand(XMVECTOR rayOrigin, XMVECTOR rayDir, float radius, float height/*, Command command*/);
+	void doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd);
 	
 	// Returns intersection point
 	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);
+
+
 
 private:
 	std::unique_ptr<DX12Mesh> m_mesh;
@@ -38,6 +44,5 @@ private:
 	float m_vertLengthY;
 	size_t m_numVertsX;
 	size_t m_numVertsY;
-
 };
 
