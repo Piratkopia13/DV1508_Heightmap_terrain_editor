@@ -48,7 +48,7 @@ void Game::init() {
 	imguiInit();
 
 	m_toolWidth = 4.0f;
-	m_toolStrenth = 1.0f;
+	m_toolStrength = 1.0f;
 
 	float floorHalfWidth = 50.0f;
 	float floorTiling = 5.0f;
@@ -226,7 +226,8 @@ void Game::imguiInit() {
 	
 	m_showingNewFile = false;
 	m_showingOpenFile = false;
-	m_SaveFileAs = false;
+	m_showingSaveFileAs = false;
+	m_showingSettings = false;
 	
 	m_showingTimeline = true;
 	m_showingToolbar = true;
@@ -234,8 +235,16 @@ void Game::imguiInit() {
 	m_showingTimelineGraph = true;
 
 	m_toolWidth = 1;
-	m_toolStrenth = 1;
+	m_toolStrength = 1;
 
+
+
+
+	m_historyWarning = 30;
+	m_toolHelpText = true;
+
+	m_tools.emplace_back(ICON_FA_PAINT_BRUSH, "potato", "1", "this high and low things");
+	m_tools.emplace_back(ICON_FA_PAINT_ROLLER, "smoothing", "2", "smoothing things of stuff");
 
 }
 
@@ -297,6 +306,8 @@ void Game::imguiFunc() {
 	imguiTopBar();
 	ImGui::End();
 	imguiTopBarWindows();
+	if (m_showingSettings)
+		imguiSettingsWindow();
 
 	ImGui::ShowDemoWindow();
 
@@ -335,8 +346,7 @@ void Game::imguiFunc() {
 }
 
 void Game::imguiTopBar() {
-	if (ImGui::BeginMenuBar())
-	{
+	if (ImGui::BeginMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("New")) {
 				m_showingNewFile = true;
@@ -350,8 +360,13 @@ void Game::imguiTopBar() {
 
 			}
 			if (ImGui::MenuItem("Save as")) {
-				m_SaveFileAs = true;
+				m_showingSaveFileAs = true;
 			}
+			ImGui::Separator();
+			if (ImGui::MenuItem("Settings")) {
+				m_showingSettings = true;
+			}
+
 			ImGui::Separator();
 			if (ImGui::MenuItem("Exit", "Alt+F4")) {
 				PostQuitMessage(10);
@@ -470,9 +485,9 @@ void Game::imguiTopBarWindows() {
 		ImGui::End();
 
 	}
-	if (m_SaveFileAs) {
+	if (m_showingSaveFileAs) {
 		ImGui::SetNextWindowSize(ImVec2(550, 550));
-		if (ImGui::Begin("Save File thing as", &m_SaveFileAs)) {
+		if (ImGui::Begin("Save File thing as", &m_showingSaveFileAs)) {
 
 			ImGui::Text("PATH: if time exists, include native window folder selection window thing");
 		}
@@ -480,6 +495,24 @@ void Game::imguiTopBarWindows() {
 
 	}
 
+}
+
+void Game::imguiSettingsWindow() {
+
+	if (m_showingSettings) {
+		if (ImGui::Begin("SETTINGS OF THINGS", &m_showingSettings, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::Text("Max unsaved commands before warning");
+			ImGui::InputInt("##value", &m_historyWarning, 1.0f);
+
+			//ImGui::Text("Max unsaved commands before warning"); 
+			ImGui::Checkbox("Enable tool help", &m_toolHelpText);
+
+
+			//ImGui::Text("PATH: if time exists, include native window folder selection window thing");
+		}
+		ImGui::End();
+
+	}
 }
 
 void Game::imguiTimeline() {
@@ -689,24 +722,22 @@ void Game::imguiGraph() {
 
 void Game::imguiTools() {
 	//ImGui::SetNextWindowSizeConstraints(ImVec2(70, 100), ImVec2(70, 10000));
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
+
 	if (ImGui::Begin("TOOLS", &m_showingToolbar, ImGuiWindowFlags_AlwaysAutoResize)) {
-		//ImGui::Text(std::to_string(ImGui::GetWindowDockID()).c_str());
 
-		ImGuiIO& io = ImGui::GetIO();
-		ImTextureID my_tex_id = io.Fonts->TexID;
-		float my_tex_w = (float)io.Fonts->TexWidth;
-		float my_tex_h = (float)io.Fonts->TexHeight;
-
-		for (int i = 0; i < 10; i++) {
-			if (ImGui::ImageButton(my_tex_id, ImVec2(32, 32), ImVec2(0, 0), ImVec2(32.0f / my_tex_w, 32 / my_tex_h), 1, ImVec4(0.0f, 0.0f, 0.0f, 1.0f))) {
-
+		for (int i = 0; i < m_tools.size(); i++) {
+			if (ImGui::Button(m_tools[i].icon.c_str())) {
+				// TODO: SET TOOL HERE
 
 			}
-			if (ImGui::IsItemHovered())
-			{
-
+			if (ImGui::IsItemHovered()) {
 				ImGui::BeginTooltip();
-				ImGui::Text(std::string("Tool " + std::to_string(i)).c_str());
+				std::string tooltipText = m_tools[i].name + " (" + m_tools[i].shortcut + ")";
+				if (m_toolHelpText)
+					tooltipText += "\n" + m_tools[i].helpText;
+				ImGui::Text(tooltipText.c_str());
 				ImGui::EndTooltip();
 			}
 		}
@@ -719,6 +750,7 @@ void Game::imguiTools() {
 
 	}
 	ImGui::End();
+	ImGui::PopStyleVar();
 }
 
 void Game::imguiToolOptions() {
@@ -734,7 +766,7 @@ void Game::imguiToolOptions() {
 		ImGui::SliderFloat("Width", &m_toolWidth, 1.f, 100.f);
 		ImGui::SameLine();
 		ImGui::SameLine();
-		ImGui::SliderFloat("Strength", &m_toolStrenth, 1.f, 100.f);
+		ImGui::SliderFloat("Strength", &m_toolStrength, 1.f, 100.f);
 		//ImGui::Slider
 
 
