@@ -274,12 +274,13 @@ void Game::imguiFunc() {
 	ImVec2 lastSize = size;
 	size.x = ImGui::GetWindowSize().x;
 	size.y = ImGui::GetWindowSize().y - 25;
+
 	if (m_dxRenderer->isRenderingToTexture())
 		ImGui::Image((ImTextureID)m_dxRenderer->getRenderedTextureGPUHandle().ptr, size);
 	// Resize render output to window size
 	if (lastSize.x != size.x || lastSize.y != size.y) {
 		// Ignore imgui bug size
-		if (!(size.x == 32 && size.y == 4294967295)) {
+		if (size.y > 0) {
 			m_persCamera->setAspectRatio(size.x / size.y);
 			m_dxRenderer->executeNextPreFrameCommand([&]() {
 				m_dxRenderer->resizeRenderTexture(size.x, size.y);
