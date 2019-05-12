@@ -582,11 +582,27 @@ void Game::imguiTimeline() {
 	m_bm.setBranch(index);
 
 	ImGui::SameLine();
-	if (ImGui::Button("Branch", { 60,30 })) {
-		// TODO: create popup window with name
-
-		//m_bm.addBranch();
+	ImGui::BeginGroup();
+	static bool br = false;
+	if (br) {
+		static char str0[128] = "";
+		ImGui::PushItemWidth(200);
+		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
+		ImGui::PopItemWidth();
+		if (ImGui::Button("Ok")) {
+			bm.addBranch(str0);
+			br = false;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel")) {
+			br = false;
+		}
 	}
+	else {
+		if (ImGui::Button("Branch", { 60,30 })) {
+			//ImGui::OpenPopup("Branch Window");
+			br = true;
+		}
 
 	// Make Merge button faded if it isn't possible to merge
 	if (!m_bm.canMerge())
@@ -603,7 +619,7 @@ void Game::imguiTimeline() {
 		ImGui::PopItemFlag();
 		ImGui::PopStyleVar();
 	}
-
+	ImGui::EndGroup();
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
 	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
