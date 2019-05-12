@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Application.h"
-#include "Branch.h"
+#include "GitClone/BranchManager.h"
 
 #include "Core/Texture2D.h"
 #include "DX12/DX12Texture2DArray.h"
@@ -28,6 +28,9 @@ public:
 	virtual void fixedUpdate(double dt) override;
 	// Renders every frame
 	virtual void render(double dt) override;
+
+private:
+	void keybinds();
 
 private:
 	void imguiInit();
@@ -62,35 +65,8 @@ private:
 	int m_historyWarning;
 	bool m_toolHelpText;
 
-	struct Tool {
-		struct ToolInfo {
-			std::string icon;
-			std::string name;
-			std::string shortcut;
-			std::string helpText;
-			ToolInfo() {
-				icon = "N/A";
-				name = "N/A";
-				shortcut = "N/A";
-				helpText = "N/A";
-			}
-			ToolInfo(std::string _icon, std::string _name, std::string _shortcut, std::string _helpText) {
-				icon = _icon;
-				name = _name;
-				shortcut = _shortcut;
-				helpText = _helpText;
-			}
-		} info;
-		std::function<void(Vertex*, std::vector<std::pair<unsigned int, float>>)> func;
-		Tool(ToolInfo _info, std::function<void(Vertex*, std::vector<std::pair<unsigned int, float>>)> _func) {
-			info = _info;
-			func = _func;
-		}
 
-	};
-	Tool* m_currentTool;
 	
-	std::vector<Tool> m_tools;
 
 
 
@@ -116,5 +92,7 @@ private:
 
 	bool m_cursorInScene;
 
-	BranchManager bm;
+	Tool* m_currentTool;
+	std::vector<Tool> m_tools;
+	BranchManager m_bm;
 };

@@ -26,7 +26,7 @@ public:
 	IndexBuffer* getIndexBuffer();
 
 	void doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd);
-	
+	void doChanges(const std::vector<std::pair<unsigned int, XMFLOAT3>>& delta);
 	// Returns intersection point
 	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);
 

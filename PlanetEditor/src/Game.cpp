@@ -118,6 +118,7 @@ void Game::update(double dt) {
 
 	Input::SetInputAllowed((m_cursorInScene || Input::IsCursorHidden()));
 
+	keybinds();
 	if (Input::IsMouseButtonPressed(Input::MouseButton::RIGHT)) {
 		Input::showCursor(Input::IsCursorHidden());
 	}
@@ -138,22 +139,6 @@ void Game::update(double dt) {
 	for (auto& mesh : m_meshes)
 		mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
 
-	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
-	if (Input::IsKeyPressed('T')) {
-		renderToTexture = !renderToTexture;
-		m_dxRenderer->renderToTexture(renderToTexture);
-	}
-	if (Input::IsKeyPressed('P')) {
-		m_dxRenderer->executeNextPreFrameCommand([&]() {
-			m_dxRenderer->resizeRenderTexture(300, 300);
-			});
-	}
-	if (Input::IsKeyPressed('O')) {
-		m_dxRenderer->executeNextPreFrameCommand([&]() {
-			m_dxRenderer->resizeRenderTexture(100, 100);
-			});
-	}
-
 	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
 		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
@@ -163,25 +148,7 @@ void Game::update(double dt) {
 		*		EXAMPLE OF HOW TO USE COMMANDS 
 		*
 		*/
-		auto setSameHeight = [&](Vertex* vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
-			float highestImpact = 0.f;
-			float height = 0.f;
-			for each (auto vertex in vectorStuff) {
-				if (vertex.second > highestImpact) {
-					height = vertices[vertex.first].position.y;
-					highestImpact = vertex.second;
-				}
-			}
-			for each (auto vertex in vectorStuff) {
-				vertices[vertex.first].position.y = height;
-			}
-		};
 
-		auto addHeight = [&](Vertex* vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
-			for each (auto vertex in vectorStuff) {
-				vertices[vertex.first].position.y += m_toolStrength * std::sin(1.57079632679f * vertex.second);
-			}
-		};
 
 		EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
@@ -216,6 +183,54 @@ void Game::render(double dt) {
 
 }
 
+void Game::keybinds() {
+
+
+	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
+	if (Input::IsKeyPressed('T')) {
+		renderToTexture = !renderToTexture;
+		m_dxRenderer->renderToTexture(renderToTexture);
+	}
+	if (Input::IsKeyPressed('P')) {
+		m_dxRenderer->executeNextPreFrameCommand([&]() {
+			m_dxRenderer->resizeRenderTexture(300, 300);
+			});
+	}
+	if (Input::IsKeyPressed('O')) {
+		m_dxRenderer->executeNextPreFrameCommand([&]() {
+			m_dxRenderer->resizeRenderTexture(100, 100);
+			});
+	}
+
+
+#pragma region TOOLS
+
+	if (Input::IsKeyPressed('Z')) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undo();
+		if(changes.size() > 0)
+			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+				m_editableMesh->doChanges(changes);
+				});
+	}
+	if (Input::IsKeyPressed('Y')) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redo();
+		if (changes.size() > 0)
+			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+			m_editableMesh->doChanges(changes);
+				});
+	}
+
+
+	if (Input::IsKeyDown('1')) {
+		m_currentTool = &m_tools[0];
+	}
+	if (Input::IsKeyDown('2')) {
+		m_currentTool = &m_tools[1];
+
+	}
+#pragma endregion
+}
+
 void Game::imguiInit() {
 	
 	m_showingNewFile = false;
@@ -237,13 +252,21 @@ void Game::imguiInit() {
 	m_historyWarning = 30;
 	m_toolHelpText = true;
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "1", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
+		float delta = 0.0;
 		for each (auto vertex in vectorStuff) {
-			vertices[vertex.first].position.y += m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			delta = m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			vertices[vertex.first].position.y += delta;
+			positions.emplace_back(vertex.first, XMFLOAT3(0, delta,0));
 		}
+
+		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
 		});
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_ROLLER, "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		float highestImpact = 0.f;
 		float height = 0.f;
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		for each (auto vertex in vectorStuff) {
 			if (vertex.second > highestImpact) {
 				height = vertices[vertex.first].position.y;
@@ -251,8 +274,12 @@ void Game::imguiInit() {
 			}
 		}
 		for each (auto vertex in vectorStuff) {
+			positions.emplace_back(vertex.first, XMFLOAT3(0, height - vertices[vertex.first].position.y, 0));
 			vertices[vertex.first].position.y = height;
 		}
+
+		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
 		});
 	
 	m_currentTool = &m_tools[0];
@@ -549,14 +576,20 @@ void Game::imguiTimeline() {
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Branch");
 	ImGui::SameLine();
-	ImGui::Combo("##hidelabel", &bm.getIndex(), bm.getBranchNames().data(), bm.getSize());
+
+	int index = m_bm.getIndex();
+	ImGui::Combo("##hidelabel", &index, m_bm.getBranchNames().data(), m_bm.getSize());
+	m_bm.setBranch(index);
 
 	ImGui::SameLine();
-	if (ImGui::Button("Branch", { 60,30 }))
-		bm.addBranch();
+	if (ImGui::Button("Branch", { 60,30 })) {
+		// TODO: create popup window with name
+
+		//m_bm.addBranch();
+	}
 
 	// Make Merge button faded if it isn't possible to merge
-	if (!bm.canMerge())
+	if (!m_bm.canMerge())
 	{
 		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
@@ -565,7 +598,7 @@ void Game::imguiTimeline() {
 	if (ImGui::Button("Merge", { 60,30 })) {
 		std::cout << "Merging...\n";
 	}
-	if (!bm.canMerge())
+	if (!m_bm.canMerge())
 	{
 		ImGui::PopItemFlag();
 		ImGui::PopStyleVar();
@@ -578,30 +611,35 @@ void Game::imguiTimeline() {
 
 	// Scroll area
 	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+	//static int size = m_bm.getCurrentBranch().getCommands().size();
+	//if(size < m_bm.getCurrentBranch().getCommands().size())
+	//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
+	//size = m_bm.getCurrentBranch().getCommands().size();
+
 	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
 		ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
-
+	
 	// Draw buttons
 	bool first = true;
-	for (auto& cmd : bm.getCommands()) {
-		if (!first)
+	for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
+		if(i != m_bm.getCurrentBranch().getCommands().size() - 1) 
 			ImGui::SameLine();
-		first = false;
-		bool cc = bm.isCurretCommand(cmd);
-		if (cc) {
+		bool currentCommand = m_bm.isCurrentCommand(i);
+		if (currentCommand) {
 			ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
 		}
-		if (ImGui::Button(cmd.icon)) {
-			bm.setCurrentCommand(cmd);
+
+		if (ImGui::Button(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon.c_str())) {
+			m_bm.setCurrentCommand(i);
 			std::cout << "Revert to point" << std::endl;
 		}
-		if (cc)
+		if (currentCommand)
 			ImGui::PopStyleColor();
 		ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
-
 		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(("Go back to this " + cmd.name).c_str());
+			ImGui::SetTooltip(("Go back to this " + m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.name).c_str());
 	}
+	
 
 	ImGui::EndChild();
 	// End of scroll area

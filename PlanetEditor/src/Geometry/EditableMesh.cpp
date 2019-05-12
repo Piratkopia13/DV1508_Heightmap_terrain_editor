@@ -138,6 +138,15 @@ void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, 
 	}
 }
 
+void EditableMesh::doChanges(const std::vector<std::pair<unsigned int, XMFLOAT3>>& delta) {
+	for (const std::pair<unsigned int, XMFLOAT3>& change : delta) {
+		vertices[change.first].position.x += change.second.x;
+		vertices[change.first].position.y += change.second.y;
+		vertices[change.first].position.z += change.second.z;
+	}
+	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex));
+}
+
 // TODO: Move to utility functions
 bool EditableMesh::rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint) {
 	XMVECTOR intersectionPoint;
