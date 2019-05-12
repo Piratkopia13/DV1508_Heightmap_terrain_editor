@@ -7,6 +7,17 @@ struct Command {
 	char* icon;
 };
 
+struct Commit {
+	std::string name;
+	std::string tag;
+	std::vector<Command> commands;
+
+	Commit(std::string _name, std::string _tag = "N/A") {
+		name = _name;
+		tag = _tag;
+	}
+};
+
 struct Branch {
 	std::string name;
 	std::vector<Command> commands;
