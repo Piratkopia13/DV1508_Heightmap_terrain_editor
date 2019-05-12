@@ -2,6 +2,7 @@
 
 #include "IconsFontAwesome5.h"
 #include "Geometry/EditableMesh.h"
+#include <vector>
 
 struct Command {
 	std::string name;
@@ -22,6 +23,7 @@ struct Commit {
 
 struct Branch {
 	std::string name;
+	std::vector<Commit> commits;
 	std::vector<Command> commands;
 //private:
 	Branch* parent = nullptr;
@@ -79,7 +81,7 @@ public:
 	}
 
 	bool canMerge() const {
-		return branches[index].parent;
+		return branches[index].parent && branches[index].commands.size() == 0;
 	}
 
 	std::vector<Command>& getCommands() {
