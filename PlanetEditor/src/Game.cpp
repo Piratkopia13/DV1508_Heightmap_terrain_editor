@@ -551,25 +551,47 @@ void Game::imguiTimeline() {
 	ImGui::SameLine();
 	ImGui::Combo("##hidelabel", &bm.getIndex(), bm.getBranchNames().data(), bm.getSize());
 
+	
 	ImGui::SameLine();
-	if (ImGui::Button("Branch", { 60,30 }))
-		bm.addBranch();
+	ImGui::BeginGroup();
+	static bool br = false;
+	if (br) {
+		static char str0[128] = "";
+		ImGui::PushItemWidth(200);
+		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
+		ImGui::PopItemWidth();
+		if (ImGui::Button("Ok")) {
+			bm.addBranch(str0);
+			br = false;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel")) {
+			br = false;
+		}
+	}
+	else {
+		if (ImGui::Button("Branch", { 60,30 })) {
+			//ImGui::OpenPopup("Branch Window");
+			br = true;
+		}
 
-	// Make Merge button faded if it isn't possible to merge
-	if (!bm.canMerge())
-	{
-		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+		// Make Merge button faded if it isn't possible to merge
+		if (!bm.canMerge())
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Merge", { 60,30 })) {
+			std::cout << "Merging...\n";
+		}
+		if (!bm.canMerge())
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
 	}
-	ImGui::SameLine();
-	if (ImGui::Button("Merge", { 60,30 })) {
-		std::cout << "Merging...\n";
-	}
-	if (!bm.canMerge())
-	{
-		ImGui::PopItemFlag();
-		ImGui::PopStyleVar();
-	}
+	ImGui::EndGroup();
 
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);

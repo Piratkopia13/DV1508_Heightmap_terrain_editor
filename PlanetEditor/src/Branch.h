@@ -73,8 +73,8 @@ public:
 		return index;
 	}
 
-	void addBranch() {
-		branches.push_back({ std::string("Branch") + std::to_string(branches.size()), &branches[index] });
+	void addBranch(const std::string& name) {
+		branches.push_back({ name, &branches[index] });
 		index = branches.size() - 1;
 		branches[index].commands.push_back({ "Branching", ICON_FA_SHARE_ALT });
 		currentCommand = 0;
