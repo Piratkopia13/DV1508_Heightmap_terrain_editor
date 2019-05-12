@@ -32,7 +32,7 @@ Branch& BranchManager::getCurrentBranch() {
 }
 
 const bool BranchManager::canMerge() {
-	return m_branches[m_index].getParent();
+	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0;
 }
 
 const bool BranchManager::createBranch(std::string name, Branch* parent) {
@@ -79,7 +79,6 @@ std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::undo() {
 	std::cout << "commandIndex: " << m_commandIndex << std::endl;
 	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
 }
-
 std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::redo() {
 	if (m_commandIndex < (int)m_branches[m_index].getCommands().size()-1) {
 		std::cout << "commandIndex: " << m_commandIndex << std::endl;
@@ -88,12 +87,10 @@ std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::redo() {
 	std::cout << "commandIndex: " << m_commandIndex << std::endl;
 	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
 }
-
 std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::undoTo(size_t index)
 {
 	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
 }
-
 std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::redoTo(size_t index)
 {
 	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
