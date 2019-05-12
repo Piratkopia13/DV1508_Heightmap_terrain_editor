@@ -590,7 +590,7 @@ void Game::imguiTimeline() {
 		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Ok")) {
-			bm.addBranch(str0);
+			m_bm.createBranch(str0, nullptr);
 			br = false;
 		}
 		ImGui::SameLine();
@@ -604,76 +604,76 @@ void Game::imguiTimeline() {
 			br = true;
 		}
 
-	// Make Merge button faded if it isn't possible to merge
-	if (!m_bm.canMerge())
-	{
-		ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-		ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Merge", { 60,30 })) {
-		std::cout << "Merging...\n";
-	}
-	if (!m_bm.canMerge())
-	{
-		ImGui::PopItemFlag();
+		// Make Merge button faded if it isn't possible to merge
+		if (!m_bm.canMerge())
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Merge", { 60,30 })) {
+			std::cout << "Merging...\n";
+		}
+		if (!m_bm.canMerge())
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
+		}
+		ImGui::EndGroup();
+		// Add spacing to right align command buttons
+		//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
+		ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
+
+
+		// Scroll area
+		ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+		//static int size = m_bm.getCurrentBranch().getCommands().size();
+		//if(size < m_bm.getCurrentBranch().getCommands().size())
+		//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
+		//size = m_bm.getCurrentBranch().getCommands().size();
+
+		if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
+			ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
+
+		// Draw buttons
+		bool first = true;
+		for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
+			if (i != m_bm.getCurrentBranch().getCommands().size() - 1)
+				ImGui::SameLine();
+			bool currentCommand = m_bm.isCurrentCommand(i);
+			if (currentCommand) {
+				ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
+			}
+
+			if (ImGui::Button(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon.c_str())) {
+				m_bm.setCurrentCommand(i);
+				std::cout << "Revert to point" << std::endl;
+			}
+			if (currentCommand)
+				ImGui::PopStyleColor();
+			ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip(("Go back to this " + m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.name).c_str());
+		}
+
+
+		ImGui::EndChild();
+		// End of scroll area
+
+
+		static int selectedPopupOption = -1;
+		if (ImGui::BeginPopupContextItem("command_popup")) {
+			for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
+				if (ImGui::Selectable(popupOptions[i]))
+					selectedPopupOption = i;
+			ImGui::EndPopup();
+		}
+
+		//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
 		ImGui::PopStyleVar();
+		ImGui::End();
 	}
-	ImGui::EndGroup();
-	// Add spacing to right align command buttons
-	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
-	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
-
-
-	// Scroll area
-	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
-	//static int size = m_bm.getCurrentBranch().getCommands().size();
-	//if(size < m_bm.getCurrentBranch().getCommands().size())
-	//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
-	//size = m_bm.getCurrentBranch().getCommands().size();
-
-	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
-		ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
-	
-	// Draw buttons
-	bool first = true;
-	for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
-		if(i != m_bm.getCurrentBranch().getCommands().size() - 1) 
-			ImGui::SameLine();
-		bool currentCommand = m_bm.isCurrentCommand(i);
-		if (currentCommand) {
-			ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
-		}
-
-		if (ImGui::Button(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon.c_str())) {
-			m_bm.setCurrentCommand(i);
-			std::cout << "Revert to point" << std::endl;
-		}
-		if (currentCommand)
-			ImGui::PopStyleColor();
-		ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(("Go back to this " + m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.name).c_str());
-	}
-	
-
-	ImGui::EndChild();
-	// End of scroll area
-
-
-	static int selectedPopupOption = -1;
-	if (ImGui::BeginPopupContextItem("command_popup")) {
-		for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
-			if (ImGui::Selectable(popupOptions[i]))
-				selectedPopupOption = i;
-		ImGui::EndPopup();
-	}
-
-	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
-	ImGui::PopStyleVar();
-	ImGui::End();
 }
-
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 	if (!ImGui::Begin("Graph", &m_showingTimelineGraph, ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -686,14 +686,14 @@ void Game::imguiGraph() {
 	enum CommitType {
 		COMMAND, MERGE, NEWBRANCH
 	};
-	struct Commit {
+	struct DummyCommit {
 		//Command cmd;
 		std::string msg;
 		std::string branch;
 		CommitType type;
 		std::string otherBranch;
 	};
-	std::vector<Commit> commits;
+	std::vector<DummyCommit> commits;
 
 	// Fill with dummy commits to dummy branches
 	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
