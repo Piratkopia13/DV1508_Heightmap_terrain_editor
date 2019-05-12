@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IconsFontAwesome5.h"
+#include "Geometry/EditableMesh.h"
 
 struct Command {
 	std::string name;
@@ -11,6 +12,7 @@ struct Commit {
 	std::string name;
 	std::string tag;
 	std::vector<Command> commands;
+	EditableMesh* mesh;
 
 	Commit(std::string _name, std::string _tag = "N/A") {
 		name = _name;
