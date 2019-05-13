@@ -27,8 +27,16 @@ void Branch::addCommand(Command cmd) {
 	m_commands.push_back(cmd);
 }
 
+void Branch::createCommit(const std::string & author, const std::string & message, EditableMesh * mesh) {
+	m_commits.emplace_back(author, message, mesh);
+}
+
 std::vector<Command>& Branch::getCommands() {
 	return m_commands;
+}
+
+std::vector<Branch::Commit>& Branch::getCommits() {
+	return m_commits;
 }
 
 void Branch::resetCommandList() {

@@ -41,8 +41,10 @@ private:
 	void imguiSettingsWindow();
 	void imguiTimeline();
 	void imguiGraph();
+	void imguiBranchHistory();
 	void imguiTools();
 	void imguiToolOptions();
+	void imguiCommitWindow();
 
 private:
 	bool m_showingNewFile;
@@ -82,9 +84,9 @@ private:
 	std::unique_ptr<Sampler2D> m_sampler;
 	std::unique_ptr<Material> m_material;
 
-	std::vector<std::unique_ptr<VertexBuffer>> m_vertexBuffers;
-	std::vector<std::unique_ptr<IndexBuffer>> m_indexBuffers;
-	std::vector<std::unique_ptr<DX12Mesh>> m_meshes;
+	std::vector<VertexBuffer*> m_vertexBuffers;
+	std::vector<IndexBuffer*> m_indexBuffers;
+	std::vector<DX12Mesh*> m_meshes;
 
 	std::unique_ptr<EditableMesh> m_editableMesh;
 

@@ -11,6 +11,8 @@
 #include "ImGui/imgui_internal.h"
 
 #include "ImGui/imgui_internal.h"
+#include <chrono>
+#include <ctime>
 
 Game::Game()
 	: Application(1700, 900, "Loading..")
@@ -119,8 +121,8 @@ void Game::init() {
 
 	if (m_dxRenderer->isDXREnabled()) {
 		// Update raytracing acceleration structures
-		m_dxRenderer->getDXR().setMeshes(m_meshes);
-		m_dxRenderer->getDXR().useCamera(m_persCamera.get());
+		/*m_dxRenderer->getDXR().setMeshes(m_meshes);
+		m_dxRenderer->getDXR().useCamera(m_persCamera.get());*/
 	}
 
 	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_persCamera.get());
@@ -188,7 +190,7 @@ void Game::fixedUpdate(double dt) {
 void Game::render(double dt) {
 	// Submit rasterization meshes
 	for (auto& mesh : m_meshes)
-		getRenderer().submit(mesh.get());
+		getRenderer().submit(mesh);
 
 	// Render frame with gui
 	std::function<void()> imgui = std::bind(&Game::imguiFunc, this);
@@ -217,9 +219,6 @@ void Game::keybinds() {
 			});
 	}
 
-
-#pragma region TOOLS
-
 	if (Input::IsKeyPressed('Z')) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undo();
 		if(changes.size() > 0)
@@ -234,6 +233,9 @@ void Game::keybinds() {
 			m_editableMesh->doChanges(changes);
 				});
 	}
+
+#pragma region TOOLS
+
 
 
 	if (Input::IsKeyDown('1')) {
@@ -257,6 +259,7 @@ void Game::imguiInit() {
 	m_showingToolbar = true;
 	m_showingToolOptions = true;
 	m_showingTimelineGraph = true;
+	m_showingBranchHistory = true;
 
 	m_toolWidth = 1;
 	m_toolStrength = 1;
@@ -301,6 +304,7 @@ void Game::imguiInit() {
 
 }
 
+static bool firstFrame = true;
 void Game::imguiFunc() {
 	// Style
 	ImGuiStyle* style = &ImGui::GetStyle();
@@ -396,6 +400,11 @@ void Game::imguiFunc() {
 		imguiToolOptions();
 	if(m_showingTimelineGraph)
 		imguiGraph();
+	if (m_showingBranchHistory)
+		imguiBranchHistory();
+
+
+	firstFrame = false;
 }
 
 void Game::imguiTopBar() {
@@ -441,6 +450,8 @@ void Game::imguiTopBar() {
 			if (ImGui::MenuItem("History Bar"), "", &m_showingTimeline) {
 			}
 			if (ImGui::MenuItem("Graph"), "", &m_showingTimelineGraph) {
+			}
+			if (ImGui::MenuItem("Branch history"), "", &m_showingBranchHistory) {
 			}
 			if (ImGui::MenuItem("Tools"), &m_showingToolbar) {
 			}
@@ -634,6 +645,13 @@ void Game::imguiTimeline() {
 			ImGui::PopItemFlag();
 			ImGui::PopStyleVar();
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("Commit")) {
+			ImGui::OpenPopup("Commit##Window");
+		}
+
+		imguiCommitWindow();
+
 		ImGui::EndGroup();
 		// Add spacing to right align command buttons
 		//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
@@ -660,8 +678,22 @@ void Game::imguiTimeline() {
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
 			}
 
-			if (ImGui::Button(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon.c_str())) {
-				m_bm.setCurrentCommand(i);
+			if (ImGui::Button(
+				(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
+				if (m_bm.getCommandIndex() > i) {
+					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
+					if (changes.size() > 0)
+						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+						m_editableMesh->doChanges(changes);
+							});
+				}
+				else if (m_bm.getCommandIndex() < i) {
+					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
+					if (changes.size() > 0)
+						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+						m_editableMesh->doChanges(changes);
+							});
+				}
 				std::cout << "Revert to point" << std::endl;
 			}
 			if (currentCommand)
@@ -800,6 +832,55 @@ void Game::imguiGraph() {
 	ImGui::PopStyleVar();
 }
 
+void Game::imguiBranchHistory() {
+	if (!ImGui::Begin("Branch History", &m_showingBranchHistory)) {
+		ImGui::End();
+		return;
+	}
+
+	ImGui::Text("Current branch: %s", m_bm.getCurrentBranch().getName().c_str());
+	ImGui::Columns(3, "mycolumns"); // 3-ways, with border
+	ImGui::Separator();
+	ImGui::Text("Author"); ImGui::NextColumn();
+	ImGui::Text("Date"); ImGui::NextColumn();
+	ImGui::Text("Message"); ImGui::NextColumn();
+	ImGui::Separator();
+
+	const int numCommits = 4;
+	const char* authors[numCommits] = { "Me", "Me", "You", "Me" };
+	const char* dates[numCommits] = { "2019-05-12 13:37", "2019-05-12 13:38", "2019-05-21 03:12", "2019-05-21 10:12" };
+	const char* messages[numCommits] = { "Created mountain", "Created a small mountain on the other mountain", "Removed stupid mountains", "Re-added beautiful mountains" };
+	static int selected = -1;
+	// Set default column widths
+	if (firstFrame) {
+		ImGui::SetColumnWidth(0, 100);
+		ImGui::SetColumnWidth(1, 155);
+	}
+	int i = 0;
+	for (auto& commit : m_bm.getCurrentBranch().getCommits()) {
+		if (ImGui::Selectable((commit.author + "##" + std::to_string(i)).c_str() , selected == i, ImGuiSelectableFlags_SpanAllColumns)) {
+			selected = i;
+			std::cout << "Selected branch commit " << selected << std::endl;
+		}
+		ImGui::NextColumn();
+
+		// Convert time to string
+		std::time_t time_c = std::chrono::system_clock::to_time_t(commit.date);
+		std::tm time_tm;
+		localtime_s(&time_tm, &time_c);
+		char timeBuff[32];
+		strftime(timeBuff, sizeof(timeBuff), "%Y-%m-%d %H:%M:%S", &time_tm);
+
+		ImGui::Text(timeBuff); ImGui::NextColumn();
+		ImGui::Text(commit.message.c_str()); ImGui::NextColumn();
+		i++;
+	}
+	ImGui::Columns(1);
+	ImGui::Separator();
+
+	ImGui::End();
+}
+
 void Game::imguiTools() {
 	//ImGui::SetNextWindowSizeConstraints(ImVec2(70, 100), ImVec2(70, 10000));
 
@@ -852,4 +933,25 @@ void Game::imguiToolOptions() {
 	}
 	ImGui::End();
 
+}
+
+void Game::imguiCommitWindow() {
+	if (ImGui::BeginPopupModal("Commit##Window", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		static char buf[128] = "Commit message";
+		ImGui::Text("Input Message");
+		ImGui::SetItemDefaultFocus();
+		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
+
+		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
+			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, nullptr);
+			char bufMsg[128] = "Commit message";
+			strncpy_s(buf, bufMsg, 128);
+			ImGui::CloseCurrentPopup(); 
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0))) { 
+			ImGui::CloseCurrentPopup(); 
+		}
+		ImGui::EndPopup();
+	}
 }

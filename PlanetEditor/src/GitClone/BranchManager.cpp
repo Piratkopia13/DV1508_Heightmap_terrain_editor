@@ -27,6 +27,10 @@ const int BranchManager::getIndex() {
 	return m_index;
 }
 
+const int BranchManager::getCommandIndex() {
+	return m_commandIndex;
+}
+
 Branch& BranchManager::getCurrentBranch() {
 	return m_branches[m_index];
 }
@@ -87,13 +91,30 @@ std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::redo() {
 	std::cout << "commandIndex: " << m_commandIndex << std::endl;
 	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
 }
-std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::undoTo(size_t index)
-{
-	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
+std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::undoTo(size_t index) {
+	if(index == m_commandIndex)
+		return std::vector<std::pair<unsigned int, XMFLOAT3>>();
+	std::vector<std::pair<unsigned int, XMFLOAT3>> sum;
+	std::vector<std::pair<unsigned int, XMFLOAT3>> temp;
+	while (m_commandIndex > index) {
+		temp = undo();
+		sum.insert(sum.end(), temp.begin(), temp.end());
+	}
+
+
+	return sum;
 }
-std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::redoTo(size_t index)
-{
-	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
+std::vector<std::pair<unsigned int, XMFLOAT3>> BranchManager::redoTo(size_t index) {
+	if (index == m_commandIndex)
+		return std::vector<std::pair<unsigned int, XMFLOAT3>>();
+	std::vector<std::pair<unsigned int, XMFLOAT3>> sum;
+	std::vector<std::pair<unsigned int, XMFLOAT3>> temp;
+	while (m_commandIndex < index) {
+		temp = redo();
+		sum.insert(sum.end(), temp.begin(), temp.end());
+	}
+
+	return sum;
 }
 
 void BranchManager::setCurrentCommand(Command& c) {
