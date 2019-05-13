@@ -202,9 +202,6 @@ void Game::keybinds() {
 			});
 	}
 
-
-#pragma region TOOLS
-
 	if (Input::IsKeyPressed('Z')) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undo();
 		if(changes.size() > 0)
@@ -219,6 +216,9 @@ void Game::keybinds() {
 			m_editableMesh->doChanges(changes);
 				});
 	}
+
+#pragma region TOOLS
+
 
 
 	if (Input::IsKeyDown('1')) {
@@ -645,8 +645,22 @@ void Game::imguiTimeline() {
 				ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
 			}
 
-			if (ImGui::Button(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon.c_str())) {
-				m_bm.setCurrentCommand(i);
+			if (ImGui::Button(
+				(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
+				if (m_bm.getCommandIndex() > i) {
+					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
+					if (changes.size() > 0)
+						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+						m_editableMesh->doChanges(changes);
+							});
+				}
+				else if (m_bm.getCommandIndex() < i) {
+					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
+					if (changes.size() > 0)
+						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+						m_editableMesh->doChanges(changes);
+							});
+				}
 				std::cout << "Revert to point" << std::endl;
 			}
 			if (currentCommand)

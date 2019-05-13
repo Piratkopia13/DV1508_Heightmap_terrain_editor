@@ -25,6 +25,7 @@ public:
 	std::vector<const char*> getBranchNames();
 
 	const int getIndex();
+	const int getCommandIndex();
 	Branch& getCurrentBranch();
 
 	const bool canMerge();
