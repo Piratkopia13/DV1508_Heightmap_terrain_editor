@@ -40,6 +40,7 @@ private:
 	void imguiSettingsWindow();
 	void imguiTimeline();
 	void imguiGraph();
+	void imguiBranchHistory();
 	void imguiTools();
 	void imguiToolOptions();
 
