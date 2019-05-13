@@ -19,6 +19,7 @@ void Input::SetInputAllowed(bool allow) {
 }
 
 void Input::RegisterKeyDown(const UINT keyCode) {
+	std::cout  << "Key Down: "<< (char)keyCode << " " << keyCode << std::endl;
 	auto iter = m_keysDown.find(keyCode);
 	if (iter != m_keysDown.end()) {
 		iter->second = true;
@@ -29,6 +30,7 @@ void Input::RegisterKeyDown(const UINT keyCode) {
 }
 
 void Input::RegisterKeyUp(const UINT keyCode) {
+	std::cout << "Key Up: " << (char)keyCode << " " << keyCode << std::endl;
 	auto iter = m_keysDown.find(keyCode);
 	if (iter != m_keysDown.end())
 		iter->second = false;

@@ -321,8 +321,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Geometry\Fence.h" />
     <ClInclude Include="src\Geometry\EditableMesh.h" />
-    <ClInclude Include="src\Branch.h" />
+    <ClInclude Include="src\GitClone\Branch.h" />
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Core\CameraController.h" />
     <ClInclude Include="src\Application.h" />
@@ -333,6 +334,8 @@
     <ClInclude Include="src\DX12\DX12Texture2DArray.h" />
     <ClInclude Include="src\Game.h" />
     <ClInclude Include="src\Geometry\Transform.h" />
+    <ClInclude Include="src\GitClone\BranchManager.h" />
+    <ClInclude Include="src\GitClone\Command.h" />
     <ClInclude Include="src\ImGui\imconfig.h" />
     <ClInclude Include="src\ImGui\imgui.h" />
     <ClInclude Include="src\ImGui\imgui_impl_dx12.h" />
@@ -372,6 +375,7 @@
     <ClInclude Include="src\Core\VertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Geometry\Fence.cpp" />
     <ClCompile Include="src\Geometry\EditableMesh.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\Application.cpp" />
@@ -392,6 +396,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='PerformanceTestDebug|Win32'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\GitClone\BranchManager.cpp" />
+    <ClCompile Include="src\GitClone\Branch.cpp" />
     <ClCompile Include="src\ImGui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='PerformanceTestDebug|x64'">NotUsing</PrecompiledHeader>

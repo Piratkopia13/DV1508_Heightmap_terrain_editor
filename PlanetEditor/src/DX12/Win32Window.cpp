@@ -112,6 +112,7 @@ LRESULT Win32Window::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 	case WM_INPUT:
 		Input::ProcessMessage(msg, wParam, lParam);
 		break;
+	
 	case WM_KEYDOWN:
 		Input::RegisterKeyDown(MapVirtualKeyA((UINT)wParam, MAPVK_VK_TO_CHAR));
 		break;

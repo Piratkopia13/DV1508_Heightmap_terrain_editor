@@ -11,6 +11,8 @@
 #include "ImGui/imgui_internal.h"
 
 #include "ImGui/imgui_internal.h"
+#include <chrono>
+#include <ctime>
 
 Game::Game()
 	: Application(1700, 900, "Loading..")
@@ -107,10 +109,25 @@ void Game::init() {
 		m_indexBuffers.emplace_back(m_editableMesh->getIndexBuffer());
 	}
 
+	// create textures
+	DX12Texture2DArray* fenceTexture = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
+	m_fenceTexArray = std::unique_ptr<DX12Texture2DArray>(fenceTexture);
+	std::vector<std::string> texFiles2;
+	texFiles2.emplace_back("../assets/textures/refract.png");
+	m_fenceTexArray->loadFromFiles(texFiles2);
+	{
+		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
+		m_fence->getMesh()->technique = m_technique.get();
+		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+		m_meshes.emplace_back(m_fence->getMesh());
+		m_vertexBuffers.emplace_back(m_fence->getVertexBuffer());
+		m_indexBuffers.emplace_back(m_fence->getIndexBuffer());
+	}
+
 	if (m_dxRenderer->isDXREnabled()) {
 		// Update raytracing acceleration structures
-		m_dxRenderer->getDXR().setMeshes(m_meshes);
-		m_dxRenderer->getDXR().useCamera(m_persCamera.get());
+		/*m_dxRenderer->getDXR().setMeshes(m_meshes);
+		m_dxRenderer->getDXR().useCamera(m_persCamera.get());*/
 	}
 
 	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_aboveCamera.get());
@@ -123,6 +140,7 @@ void Game::update(double dt) {
 
 	Input::SetInputAllowed((m_cursorInScene || Input::IsCursorHidden()));
 
+	keybinds();
 	if (Input::IsMouseButtonPressed(Input::MouseButton::RIGHT)) {
 		Input::showCursor(Input::IsCursorHidden());
 	}
@@ -161,22 +179,6 @@ void Game::update(double dt) {
 	}
 
 
-	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
-	if (Input::IsKeyPressed('T')) {
-		renderToTexture = !renderToTexture;
-		m_dxRenderer->renderToTexture(renderToTexture);
-	}
-	if (Input::IsKeyPressed('P')) {
-		m_dxRenderer->executeNextPreFrameCommand([&]() {
-			m_dxRenderer->resizeRenderTexture(300, 300);
-			});
-	}
-	if (Input::IsKeyPressed('O')) {
-		m_dxRenderer->executeNextPreFrameCommand([&]() {
-			m_dxRenderer->resizeRenderTexture(100, 100);
-			});
-	}
-
 	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
 		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
@@ -186,25 +188,7 @@ void Game::update(double dt) {
 		*		EXAMPLE OF HOW TO USE COMMANDS 
 		*
 		*/
-		auto setSameHeight = [&](Vertex* vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
-			float highestImpact = 0.f;
-			float height = 0.f;
-			for each (auto vertex in vectorStuff) {
-				if (vertex.second > highestImpact) {
-					height = vertices[vertex.first].position.y;
-					highestImpact = vertex.second;
-				}
-			}
-			for each (auto vertex in vectorStuff) {
-				vertices[vertex.first].position.y = height;
-			}
-		};
 
-		auto addHeight = [&](Vertex* vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
-			for each (auto vertex in vectorStuff) {
-				vertices[vertex.first].position.y += m_toolStrength * std::sin(1.57079632679f * vertex.second);
-			}
-		};
 
 		EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
@@ -229,7 +213,7 @@ void Game::fixedUpdate(double dt) {
 void Game::render(double dt) {
 	// Submit rasterization meshes
 	for (auto& mesh : m_meshes)
-		getRenderer().submit(mesh.get());
+		getRenderer().submit(mesh);
 
 	// Render frame with gui
 	std::function<void()> imgui = std::bind(&Game::imguiFunc, this);
@@ -237,6 +221,54 @@ void Game::render(double dt) {
 
 	getRenderer().present();
 
+}
+
+void Game::keybinds() {
+
+
+	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
+	if (Input::IsKeyPressed('T')) {
+		renderToTexture = !renderToTexture;
+		m_dxRenderer->renderToTexture(renderToTexture);
+	}
+	if (Input::IsKeyPressed('P')) {
+		m_dxRenderer->executeNextPreFrameCommand([&]() {
+			m_dxRenderer->resizeRenderTexture(300, 300);
+			});
+	}
+	if (Input::IsKeyPressed('O')) {
+		m_dxRenderer->executeNextPreFrameCommand([&]() {
+			m_dxRenderer->resizeRenderTexture(100, 100);
+			});
+	}
+
+	if (Input::IsKeyPressed('Z')) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undo();
+		if(changes.size() > 0)
+			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+				m_editableMesh->doChanges(changes);
+				});
+	}
+	if (Input::IsKeyPressed('Y')) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redo();
+		if (changes.size() > 0)
+			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+			m_editableMesh->doChanges(changes);
+				});
+	}
+
+#pragma region TOOLS
+
+
+
+	if (Input::IsKeyDown('1')) {
+		m_currentTool = &m_tools[0];
+	}
+	if (Input::IsKeyDown('2')) {
+		m_currentTool = &m_tools[1];
+
+	}
+#pragma endregion
 }
 
 void Game::imguiInit() {
@@ -250,6 +282,7 @@ void Game::imguiInit() {
 	m_showingToolbar = true;
 	m_showingToolOptions = true;
 	m_showingTimelineGraph = true;
+	m_showingBranchHistory = true;
 
 	m_toolWidth = 1;
 	m_toolStrength = 1;
@@ -260,13 +293,21 @@ void Game::imguiInit() {
 	m_historyWarning = 30;
 	m_toolHelpText = true;
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "1", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
+		float delta = 0.0;
 		for each (auto vertex in vectorStuff) {
-			vertices[vertex.first].position.y += m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			delta = m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			vertices[vertex.first].position.y += delta;
+			positions.emplace_back(vertex.first, XMFLOAT3(0, delta,0));
 		}
+
+		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
 		});
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_ROLLER, "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		float highestImpact = 0.f;
 		float height = 0.f;
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		for each (auto vertex in vectorStuff) {
 			if (vertex.second > highestImpact) {
 				height = vertices[vertex.first].position.y;
@@ -274,14 +315,19 @@ void Game::imguiInit() {
 			}
 		}
 		for each (auto vertex in vectorStuff) {
+			positions.emplace_back(vertex.first, XMFLOAT3(0, height - vertices[vertex.first].position.y, 0));
 			vertices[vertex.first].position.y = height;
 		}
+
+		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
 		});
 	
 	m_currentTool = &m_tools[0];
 
 }
 
+static bool firstFrame = true;
 void Game::imguiFunc() {
 	// Style
 	ImGuiStyle* style = &ImGui::GetStyle();
@@ -388,6 +434,11 @@ void Game::imguiFunc() {
 		imguiToolOptions();
 	if(m_showingTimelineGraph)
 		imguiGraph();
+	if (m_showingBranchHistory)
+		imguiBranchHistory();
+
+
+	firstFrame = false;
 }
 
 void Game::imguiTopBar() {
@@ -433,6 +484,8 @@ void Game::imguiTopBar() {
 			if (ImGui::MenuItem("History Bar"), "", &m_showingTimeline) {
 			}
 			if (ImGui::MenuItem("Graph"), "", &m_showingTimelineGraph) {
+			}
+			if (ImGui::MenuItem("Branch history"), "", &m_showingBranchHistory) {
 			}
 			if (ImGui::MenuItem("Tools"), &m_showingToolbar) {
 			}
@@ -583,9 +636,11 @@ void Game::imguiTimeline() {
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Branch");
 	ImGui::SameLine();
-	ImGui::Combo("##hidelabel", &bm.getIndex(), bm.getBranchNames().data(), bm.getSize());
 
-	
+	int index = m_bm.getIndex();
+	ImGui::Combo("##hidelabel", &index, m_bm.getBranchNames().data(), m_bm.getSize());
+	m_bm.setBranch(index);
+
 	ImGui::SameLine();
 	ImGui::BeginGroup();
 	if (m_branching) {
@@ -594,6 +649,7 @@ void Game::imguiTimeline() {
 		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Ok")) {
+			m_bm.createBranch(str0, nullptr);
 			bm.addBranch(str0);
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
@@ -612,7 +668,7 @@ void Game::imguiTimeline() {
 		}
 
 		// Make Merge button faded if it isn't possible to merge
-		if (!bm.canMerge())
+		if (!m_bm.canMerge())
 		{
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
@@ -621,63 +677,87 @@ void Game::imguiTimeline() {
 		if (ImGui::Button("Merge", { 60,30 })) {
 			std::cout << "Merging...\n";
 		}
-		if (!bm.canMerge())
+		if (!m_bm.canMerge())
 		{
 			ImGui::PopItemFlag();
 			ImGui::PopStyleVar();
 		}
-	}
-	ImGui::EndGroup();
-
-	// Add spacing to right align command buttons
-	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
-	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
-
-
-	// Scroll area
-	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
-	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
-		ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
-
-	// Draw buttons
-	bool first = true;
-	for (auto& cmd : bm.getCommands()) {
-		if (!first)
-			ImGui::SameLine();
-		first = false;
-		bool cc = bm.isCurretCommand(cmd);
-		if (cc) {
-			ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
+		ImGui::SameLine();
+		if (ImGui::Button("Commit")) {
+			ImGui::OpenPopup("Commit##Window");
 		}
-		if (ImGui::Button(cmd.icon)) {
-			bm.setCurrentCommand(cmd);
-			std::cout << "Revert to point" << std::endl;
+
+		imguiCommitWindow();
+
+		ImGui::EndGroup();
+		// Add spacing to right align command buttons
+		//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
+		ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
+
+
+		// Scroll area
+		ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+		//static int size = m_bm.getCurrentBranch().getCommands().size();
+		//if(size < m_bm.getCurrentBranch().getCommands().size())
+		//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
+		//size = m_bm.getCurrentBranch().getCommands().size();
+
+		if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
+			ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
+
+		// Draw buttons
+		bool first = true;
+		for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
+			if (i != m_bm.getCurrentBranch().getCommands().size() - 1)
+				ImGui::SameLine();
+			bool currentCommand = m_bm.isCurrentCommand(i);
+			if (currentCommand) {
+				ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
+			}
+
+			if (ImGui::Button(
+				(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
+				if (m_bm.getCommandIndex() > i) {
+					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
+					if (changes.size() > 0)
+						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+						m_editableMesh->doChanges(changes);
+							});
+				}
+				else if (m_bm.getCommandIndex() < i) {
+					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
+					if (changes.size() > 0)
+						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+						m_editableMesh->doChanges(changes);
+							});
+				}
+				std::cout << "Revert to point" << std::endl;
+			}
+			if (currentCommand)
+				ImGui::PopStyleColor();
+			ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip(("Go back to this " + m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.name).c_str());
 		}
-		if (cc)
-			ImGui::PopStyleColor();
-		ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
 
-		if (ImGui::IsItemHovered())
-			ImGui::SetTooltip(("Go back to this " + cmd.name).c_str());
+
+		ImGui::EndChild();
+		// End of scroll area
+
+
+		static int selectedPopupOption = -1;
+		if (ImGui::BeginPopupContextItem("command_popup")) {
+			for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
+				if (ImGui::Selectable(popupOptions[i]))
+					selectedPopupOption = i;
+			ImGui::EndPopup();
+		}
+
+		//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
+		ImGui::PopStyleVar();
+		ImGui::End();
 	}
-
-	ImGui::EndChild();
-	// End of scroll area
-
-
-	static int selectedPopupOption = -1;
-	if (ImGui::BeginPopupContextItem("command_popup")) {
-		for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
-			if (ImGui::Selectable(popupOptions[i]))
-				selectedPopupOption = i;
-		ImGui::EndPopup();
-	}
-
-	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
-	ImGui::PopStyleVar();
-	ImGui::End();
 }
-
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 	if (!ImGui::Begin("Graph", &m_showingTimelineGraph, ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -690,14 +770,14 @@ void Game::imguiGraph() {
 	enum CommitType {
 		COMMAND, MERGE, NEWBRANCH
 	};
-	struct Commit {
+	struct DummyCommit {
 		//Command cmd;
 		std::string msg;
 		std::string branch;
 		CommitType type;
 		std::string otherBranch;
 	};
-	std::vector<Commit> commits;
+	std::vector<DummyCommit> commits;
 
 	// Fill with dummy commits to dummy branches
 	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
@@ -789,6 +869,55 @@ void Game::imguiGraph() {
 	ImGui::PopStyleVar();
 }
 
+void Game::imguiBranchHistory() {
+	if (!ImGui::Begin("Branch History", &m_showingBranchHistory)) {
+		ImGui::End();
+		return;
+	}
+
+	ImGui::Text("Current branch: %s", m_bm.getCurrentBranch().getName().c_str());
+	ImGui::Columns(3, "mycolumns"); // 3-ways, with border
+	ImGui::Separator();
+	ImGui::Text("Author"); ImGui::NextColumn();
+	ImGui::Text("Date"); ImGui::NextColumn();
+	ImGui::Text("Message"); ImGui::NextColumn();
+	ImGui::Separator();
+
+	const int numCommits = 4;
+	const char* authors[numCommits] = { "Me", "Me", "You", "Me" };
+	const char* dates[numCommits] = { "2019-05-12 13:37", "2019-05-12 13:38", "2019-05-21 03:12", "2019-05-21 10:12" };
+	const char* messages[numCommits] = { "Created mountain", "Created a small mountain on the other mountain", "Removed stupid mountains", "Re-added beautiful mountains" };
+	static int selected = -1;
+	// Set default column widths
+	if (firstFrame) {
+		ImGui::SetColumnWidth(0, 100);
+		ImGui::SetColumnWidth(1, 155);
+	}
+	int i = 0;
+	for (auto& commit : m_bm.getCurrentBranch().getCommits()) {
+		if (ImGui::Selectable((commit.author + "##" + std::to_string(i)).c_str() , selected == i, ImGuiSelectableFlags_SpanAllColumns)) {
+			selected = i;
+			std::cout << "Selected branch commit " << selected << std::endl;
+		}
+		ImGui::NextColumn();
+
+		// Convert time to string
+		std::time_t time_c = std::chrono::system_clock::to_time_t(commit.date);
+		std::tm time_tm;
+		localtime_s(&time_tm, &time_c);
+		char timeBuff[32];
+		strftime(timeBuff, sizeof(timeBuff), "%Y-%m-%d %H:%M:%S", &time_tm);
+
+		ImGui::Text(timeBuff); ImGui::NextColumn();
+		ImGui::Text(commit.message.c_str()); ImGui::NextColumn();
+		i++;
+	}
+	ImGui::Columns(1);
+	ImGui::Separator();
+
+	ImGui::End();
+}
+
 void Game::imguiTools() {
 	//ImGui::SetNextWindowSizeConstraints(ImVec2(70, 100), ImVec2(70, 10000));
 
@@ -841,4 +970,25 @@ void Game::imguiToolOptions() {
 	}
 	ImGui::End();
 
+}
+
+void Game::imguiCommitWindow() {
+	if (ImGui::BeginPopupModal("Commit##Window", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		static char buf[128] = "Commit message";
+		ImGui::Text("Input Message");
+		ImGui::SetItemDefaultFocus();
+		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
+
+		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
+			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, new EditableMesh(*m_editableMesh.get()));
+			char bufMsg[128] = "Commit message";
+			strncpy_s(buf, bufMsg, 128);
+			ImGui::CloseCurrentPopup(); 
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0))) { 
+			ImGui::CloseCurrentPopup(); 
+		}
+		ImGui::EndPopup();
+	}
 }

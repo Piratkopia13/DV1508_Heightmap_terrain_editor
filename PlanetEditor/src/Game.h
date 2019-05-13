@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Application.h"
-#include "Branch.h"
+#include "GitClone/BranchManager.h"
 
 #include "Core/Texture2D.h"
 #include "DX12/DX12Texture2DArray.h"
@@ -11,6 +11,7 @@
 #include "potatoFBXImporter/PotatoFBXImporter.h"
 #include "GameObject.h"
 #include "TimerSaver.h"
+#include "Geometry/Fence.h"
 
 class DX12Renderer;
 class DX12Mesh;
@@ -30,6 +31,9 @@ public:
 	virtual void render(double dt) override;
 
 private:
+	void keybinds();
+
+private:
 	void imguiInit();
 	void imguiFunc();
 	void imguiTopBar();
@@ -37,8 +41,10 @@ private:
 	void imguiSettingsWindow();
 	void imguiTimeline();
 	void imguiGraph();
+	void imguiBranchHistory();
 	void imguiTools();
 	void imguiToolOptions();
+	void imguiCommitWindow();
 
 private:
 	bool m_showingNewFile;
@@ -62,35 +68,8 @@ private:
 	int m_historyWarning;
 	bool m_toolHelpText;
 
-	struct Tool {
-		struct ToolInfo {
-			std::string icon;
-			std::string name;
-			std::string shortcut;
-			std::string helpText;
-			ToolInfo() {
-				icon = "N/A";
-				name = "N/A";
-				shortcut = "N/A";
-				helpText = "N/A";
-			}
-			ToolInfo(std::string _icon, std::string _name, std::string _shortcut, std::string _helpText) {
-				icon = _icon;
-				name = _name;
-				shortcut = _shortcut;
-				helpText = _helpText;
-			}
-		} info;
-		std::function<void(Vertex*, std::vector<std::pair<unsigned int, float>>)> func;
-		Tool(ToolInfo _info, std::function<void(Vertex*, std::vector<std::pair<unsigned int, float>>)> _func) {
-			info = _info;
-			func = _func;
-		}
 
-	};
-	Tool* m_currentTool;
 	
-	std::vector<Tool> m_tools;
 
 
 
@@ -108,18 +87,23 @@ private:
 	std::unique_ptr<Sampler2D> m_sampler;
 	std::unique_ptr<Material> m_material;
 
-	std::vector<std::unique_ptr<VertexBuffer>> m_vertexBuffers;
-	std::vector<std::unique_ptr<IndexBuffer>> m_indexBuffers;
-	std::vector<std::unique_ptr<DX12Mesh>> m_meshes;
+	std::vector<VertexBuffer*> m_vertexBuffers;
+	std::vector<IndexBuffer*> m_indexBuffers;
+	std::vector<DX12Mesh*> m_meshes;
 
 	std::unique_ptr<EditableMesh> m_editableMesh;
+
+	std::unique_ptr<Fence> m_fence;
+	std::unique_ptr<DX12Texture2DArray> m_fenceTexArray;
 
 	std::unique_ptr<PotatoFBXImporter> m_fbxImporter;
 	std::vector<PotatoModel*> m_models;
 
 	bool m_cursorInScene;
 
+	Tool* m_currentTool;
+	std::vector<Tool> m_tools;
+	BranchManager m_bm;
 	bool m_branching = false;
 	ImVec2 m_points[2];
-	BranchManager bm;
 };
