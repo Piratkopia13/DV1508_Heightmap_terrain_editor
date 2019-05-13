@@ -929,7 +929,8 @@ void Game::imguiCommitWindow() {
 
 		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
 			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, nullptr);
-			buf = "Commit message";
+			char bufMsg[128] = "Commit message";
+			strncpy_s(buf, bufMsg, 128);
 			ImGui::CloseCurrentPopup(); 
 		}
 		ImGui::SameLine();
