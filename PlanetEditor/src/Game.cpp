@@ -104,8 +104,8 @@ void Game::init() {
 
 	if (m_dxRenderer->isDXREnabled()) {
 		// Update raytracing acceleration structures
-		m_dxRenderer->getDXR().setMeshes(m_meshes);
-		m_dxRenderer->getDXR().useCamera(m_persCamera.get());
+		/*m_dxRenderer->getDXR().setMeshes(m_meshes);
+		m_dxRenderer->getDXR().useCamera(m_persCamera.get());*/
 	}
 
 	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_persCamera.get());
@@ -173,7 +173,7 @@ void Game::fixedUpdate(double dt) {
 void Game::render(double dt) {
 	// Submit rasterization meshes
 	for (auto& mesh : m_meshes)
-		getRenderer().submit(mesh.get());
+		getRenderer().submit(mesh);
 
 	// Render frame with gui
 	std::function<void()> imgui = std::bind(&Game::imguiFunc, this);

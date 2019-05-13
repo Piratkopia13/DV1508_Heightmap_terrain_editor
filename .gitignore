@@ -270,3 +270,4 @@ bin/Release-x64/PlanetEditor/PlanetEditor.exe
 /Project_DXR/nsight_profiler.cfg
 *.tsv
 /pix_captures
+*.tasks
