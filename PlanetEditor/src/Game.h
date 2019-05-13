@@ -43,6 +43,7 @@ private:
 	void imguiBranchHistory();
 	void imguiTools();
 	void imguiToolOptions();
+	void imguiCommitWindow();
 
 private:
 	bool m_showingNewFile;

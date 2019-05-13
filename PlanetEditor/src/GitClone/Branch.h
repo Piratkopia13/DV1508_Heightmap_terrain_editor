@@ -34,6 +34,7 @@ public:
 
 	void addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition);
 	void addCommand(Command cmd);
+	void createCommit(const std::string& author, const std::string& message, EditableMesh* mesh);
 	std::vector<Command>& getCommands();
 	std::vector<Branch::Commit>& getCommits();
 	void resetCommandList();

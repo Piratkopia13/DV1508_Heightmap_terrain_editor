@@ -631,10 +631,11 @@ void Game::imguiTimeline() {
 			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Dummy commit")) {
-			Branch::Commit commit("Me", "Dummy commit stupid mountain", nullptr);
-			m_bm.getCurrentBranch().getCommits().push_back(commit);
+		if (ImGui::Button("Commit")) {
+			ImGui::OpenPopup("Commit##Window");
 		}
+
+		imguiCommitWindow();
 
 		ImGui::EndGroup();
 		// Add spacing to right align command buttons
@@ -917,4 +918,24 @@ void Game::imguiToolOptions() {
 	}
 	ImGui::End();
 
+}
+
+void Game::imguiCommitWindow() {
+	if (ImGui::BeginPopupModal("Commit##Window", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		static char buf[128] = "Commit message";
+		ImGui::Text("Input Message");
+		ImGui::SetItemDefaultFocus();
+		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
+
+		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
+			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, nullptr);
+
+			ImGui::CloseCurrentPopup(); 
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0))) { 
+			ImGui::CloseCurrentPopup(); 
+		}
+		ImGui::EndPopup();
+	}
 }
