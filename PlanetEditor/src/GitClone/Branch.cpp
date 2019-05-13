@@ -31,6 +31,10 @@ std::vector<Command>& Branch::getCommands() {
 	return m_commands;
 }
 
+std::vector<Branch::Commit>& Branch::getCommits() {
+	return m_commits;
+}
+
 void Branch::resetCommandList() {
 	m_commands.clear();
 }

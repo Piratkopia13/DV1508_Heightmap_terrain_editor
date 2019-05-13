@@ -8,16 +8,16 @@
 class Branch {
 public:
 	struct Commit {
-		std::string name;
-		std::string tag;
-		std::chrono::time_point<std::chrono::steady_clock> time;
+		std::string author;
+		std::string message;
+		std::chrono::system_clock::time_point date;
 		EditableMesh* mesh;
 
-		Commit(std::string _name, EditableMesh* _mesh, std::string _tag = "N/A") {
-			name = _name;
-			tag = _tag;
-			mesh = _mesh;
-			time = std::chrono::high_resolution_clock::now();
+		Commit(const std::string& author, const std::string& message, EditableMesh* mesh) {
+			this->author = author;
+			this->message = message;
+			this->date = std::chrono::system_clock::now();
+			this->mesh = mesh;
 		}
 	};
 
@@ -35,6 +35,7 @@ public:
 	void addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition);
 	void addCommand(Command cmd);
 	std::vector<Command>& getCommands();
+	std::vector<Branch::Commit>& getCommits();
 	void resetCommandList();
 
 private:
