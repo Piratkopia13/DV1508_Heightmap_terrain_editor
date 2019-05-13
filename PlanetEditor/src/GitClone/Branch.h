@@ -21,13 +21,26 @@ public:
 			this->mesh = mesh;
 		}
 
+		Commit(const Commit& other) {
+			this->author = other.author;
+			this->message = other.message;
+			this->date = other.date;
+			this->mesh = new EditableMesh(*other.mesh);
+		}
+
+		Commit& operator=(const Commit& other) {
+			this->author = other.author;
+			this->message = other.message;
+			this->date = other.date;
+			this->mesh = new EditableMesh(*other.mesh);
+
+			return *this;
+		}
+
 		~Commit() {
 			delete mesh;
 		}
 	};
-
-
-
 
 
 	Branch();
@@ -51,11 +64,5 @@ private:
 	Branch* m_parent;
 
 	std::vector<Commit> m_commits;
-
-
-
-
-
-
 };
 

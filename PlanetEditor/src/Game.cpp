@@ -35,6 +35,8 @@ Game::Game()
 	ImFontConfig icons_config; icons_config.MergeMode = true; icons_config.PixelSnapH = true;
 	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config, icons_ranges);
 	// use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
+
+	m_jumpToCommitIndex = 0;
 }
 
 Game::~Game() {
@@ -863,6 +865,48 @@ void Game::imguiBranchHistory() {
 			std::cout << "Selected branch commit " << selected << std::endl;
 		}
 		ImGui::NextColumn();
+		bool openPopup = false;
+		if (ImGui::BeginPopupContextItem(("Commit Popup Window ##" + std::to_string(i)).c_str())) {
+			if (ImGui::Button("Go to this commit")) {
+				m_jumpToCommitIndex = i;
+				if (m_bm.getCurrentBranch().getCommands().size() > 0) {
+					openPopup = true;
+				}
+				else {
+					m_dxRenderer->executeNextOpenCopyCommand([&] {
+						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
+					});
+				}
+				ImGui::CloseCurrentPopup();
+			}
+			//ImGui::InputText("##edit", name, IM_ARRAYSIZE(name));
+			if (ImGui::Button("Close"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
+
+		if(openPopup)
+			ImGui::OpenPopup("Warning! Commit Jump##1337");
+
+		if (m_jumpToCommitIndex == i) {
+			if (ImGui::BeginPopupModal("Warning! Commit Jump##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::Text("Are you sure you want to jump to this commit? All uncommitted progress will be lost.");
+
+				if (ImGui::Button("Go to commit", ImVec2(120, 0))) {
+					m_bm.getCurrentBranch().resetCommandList();
+					m_dxRenderer->executeNextOpenCopyCommand([&] {
+						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
+					});
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SetItemDefaultFocus();
+				ImGui::EndPopup();
+			}
+		}
 
 		// Convert time to string
 		std::time_t time_c = std::chrono::system_clock::to_time_t(commit.date);
@@ -943,7 +987,8 @@ void Game::imguiCommitWindow() {
 		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
 
 		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
-			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, new EditableMesh(*m_editableMesh.get()));
+			EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
 			char bufMsg[128] = "Commit message";
 			strncpy_s(buf, bufMsg, 128);
 			ImGui::CloseCurrentPopup(); 

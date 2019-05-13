@@ -33,6 +33,8 @@ public:
 	// Returns intersection point
 	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);
 
+	void setVertexData(Vertex* vertices);
+	Vertex* getVertices();
 
 
 private:

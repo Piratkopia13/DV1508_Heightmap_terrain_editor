@@ -45,6 +45,7 @@ private:
 	void imguiTools();
 	void imguiToolOptions();
 	void imguiCommitWindow();
+	void imguiCommitJumpWindow();
 
 private:
 	bool m_showingNewFile;
@@ -69,6 +70,8 @@ private:
 	bool m_toolHelpText;
 
 
+private:
+	unsigned int m_jumpToCommitIndex;
 	
 
 
