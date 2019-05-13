@@ -650,7 +650,6 @@ void Game::imguiTimeline() {
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Ok")) {
 			m_bm.createBranch(str0, nullptr);
-			bm.addBranch(str0);
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
