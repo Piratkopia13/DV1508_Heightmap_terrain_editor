@@ -12,6 +12,8 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, si
 
 	assert(numVertsX > 2 && numVertsY > 2 && width > 0.f && height > 0.f);
 
+	m_renderer = renderer;
+
 	int numVertices = numVertsX * numVertsY;
 	int numIndices = (numVertsX - 1) * (numVertsY - 1) * 6;
 	m_mesh = std::unique_ptr<DX12Mesh>(static_cast<DX12Mesh*>(renderer->makeMesh()));
@@ -63,8 +65,63 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, si
 	m_indexBuffer->setData(indices, numIndices * sizeof(unsigned int), 0);
 }
 
+EditableMesh::EditableMesh(const EditableMesh & other) {
+	int numVertices = other.m_numVertsX * other.m_numVertsY;
+	int numIndices = (other.m_numVertsX - 1) * (other.m_numVertsY - 1) * 6;
+	m_mesh = std::unique_ptr<DX12Mesh>(static_cast<DX12Mesh*>(other.m_renderer->makeMesh()));
+	m_vertexBuffer = std::unique_ptr<VertexBuffer>(other.m_renderer->makeVertexBuffer(numVertices * sizeof(Vertex), VertexBuffer::DATA_USAGE::DYNAMIC));
+	m_indexBuffer = std::unique_ptr<IndexBuffer>(other.m_renderer->makeIndexBuffer(numIndices * sizeof(unsigned int), IndexBuffer::DATA_USAGE::STATIC));
+	m_mesh->setIABinding(m_vertexBuffer.get(), m_indexBuffer.get(), 0, numVertices, numIndices, sizeof(Vertex));
+
+	m_numVertsX = other.m_numVertsX;
+	m_numVertsY = other.m_numVertsY;
+	vertices = new Vertex[numVertices];
+	indices = new unsigned int[numIndices];
+
+	std::memcpy(vertices, other.vertices, numVertices * sizeof(Vertex));
+	std::memcpy(indices, other.indices, numIndices * sizeof(unsigned int));
+
+	m_vertLengthX = other.m_vertLengthX;
+	m_vertLengthY = other.m_vertLengthY;
+
+	m_vertexBuffer->setData(vertices, numVertices * sizeof(Vertex), 0);
+	m_indexBuffer->setData(indices, numIndices * sizeof(unsigned int), 0);
+}
+
 
 EditableMesh::~EditableMesh() {
+	delete vertices;
+	delete indices;
+}
+
+EditableMesh EditableMesh::operator=(const EditableMesh & other) {
+	delete vertices;
+	vertices = nullptr;
+	delete indices;
+	indices = nullptr;
+
+	int numVertices = other.m_numVertsX * other.m_numVertsY;
+	int numIndices = (other.m_numVertsX - 1) * (other.m_numVertsY - 1) * 6;
+	m_mesh = std::unique_ptr<DX12Mesh>(static_cast<DX12Mesh*>(other.m_renderer->makeMesh()));
+	m_vertexBuffer = std::unique_ptr<VertexBuffer>(other.m_renderer->makeVertexBuffer(numVertices * sizeof(Vertex), VertexBuffer::DATA_USAGE::DYNAMIC));
+	m_indexBuffer = std::unique_ptr<IndexBuffer>(other.m_renderer->makeIndexBuffer(numIndices * sizeof(unsigned int), IndexBuffer::DATA_USAGE::STATIC));
+	m_mesh->setIABinding(m_vertexBuffer.get(), m_indexBuffer.get(), 0, numVertices, numIndices, sizeof(Vertex));
+
+	m_numVertsX = other.m_numVertsX;
+	m_numVertsY = other.m_numVertsY;
+	vertices = new Vertex[numVertices];
+	indices = new unsigned int[numIndices];
+
+	std::memcpy(vertices, other.vertices, numVertices * sizeof(Vertex));
+	std::memcpy(indices, other.indices, numIndices * sizeof(unsigned int));
+
+	m_vertLengthX = other.m_vertLengthX;
+	m_vertLengthY = other.m_vertLengthY;
+
+	m_vertexBuffer->setData(vertices, numVertices * sizeof(Vertex), 0);
+	m_indexBuffer->setData(indices, numIndices * sizeof(unsigned int), 0);
+
+	return *this;
 }
 
 DX12Mesh * EditableMesh::getMesh() {

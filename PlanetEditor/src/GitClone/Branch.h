@@ -7,7 +7,8 @@
 
 class Branch {
 public:
-	struct Commit {
+	class Commit {
+	public:
 		std::string author;
 		std::string message;
 		std::chrono::system_clock::time_point date;
@@ -18,6 +19,10 @@ public:
 			this->message = message;
 			this->date = std::chrono::system_clock::now();
 			this->mesh = mesh;
+		}
+
+		~Commit() {
+			delete mesh;
 		}
 	};
 

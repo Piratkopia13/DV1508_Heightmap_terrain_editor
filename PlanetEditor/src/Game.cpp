@@ -928,7 +928,7 @@ void Game::imguiCommitWindow() {
 		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
 
 		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
-			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, nullptr);
+			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, new EditableMesh(*m_editableMesh.get()));
 			char bufMsg[128] = "Commit message";
 			strncpy_s(buf, bufMsg, 128);
 			ImGui::CloseCurrentPopup(); 
