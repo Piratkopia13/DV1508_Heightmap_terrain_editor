@@ -102,6 +102,21 @@ void Game::init() {
 		m_indexBuffers.emplace_back(m_editableMesh->getIndexBuffer());
 	}
 
+	// create textures
+	DX12Texture2DArray* fenceTexture = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
+	m_fenceTexArray = std::unique_ptr<DX12Texture2DArray>(fenceTexture);
+	std::vector<std::string> texFiles2;
+	texFiles2.emplace_back("../assets/textures/refract.png");
+	m_fenceTexArray->loadFromFiles(texFiles2);
+	{
+		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
+		m_fence->getMesh()->technique = m_technique.get();
+		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+		m_meshes.emplace_back(m_fence->getMesh());
+		m_vertexBuffers.emplace_back(m_fence->getVertexBuffer());
+		m_indexBuffers.emplace_back(m_fence->getIndexBuffer());
+	}
+
 	if (m_dxRenderer->isDXREnabled()) {
 		// Update raytracing acceleration structures
 		m_dxRenderer->getDXR().setMeshes(m_meshes);

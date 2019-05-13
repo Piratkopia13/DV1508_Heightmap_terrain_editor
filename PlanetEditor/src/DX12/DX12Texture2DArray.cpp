@@ -137,7 +137,7 @@ HRESULT DX12Texture2DArray::loadFromFiles(std::vector<std::string> filenames) {
 }
 
 void DX12Texture2DArray::bind(ID3D12GraphicsCommandList3* cmdList) {
-	if (m_rgbaVec.size() > 0) {
+	if (m_rgbaVec.size() > 0) { 
 		m_rgbaVec.clear();
 	}
 

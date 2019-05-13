@@ -321,6 +321,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Geometry\Fence.h" />
     <ClInclude Include="src\Geometry\EditableMesh.h" />
     <ClInclude Include="src\GitClone\Branch.h" />
     <ClInclude Include="src\GameObject.h" />
@@ -374,6 +375,7 @@
     <ClInclude Include="src\Core\VertexBuffer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Geometry\Fence.cpp" />
     <ClCompile Include="src\Geometry\EditableMesh.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\Application.cpp" />
