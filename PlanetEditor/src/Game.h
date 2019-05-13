@@ -100,6 +100,9 @@ private:
 	std::unique_ptr<Camera> m_persCamera;
 	std::unique_ptr<CameraController> m_persCameraController;
 
+	std::unique_ptr<Camera> m_aboveCamera;
+	std::unique_ptr<StaticCameraController> m_aboveCameraController;
+
 	std::unique_ptr<Technique> m_technique;
 	std::unique_ptr<DX12Texture2DArray> m_floorTexArray;
 	std::unique_ptr<Sampler2D> m_sampler;
@@ -116,5 +119,7 @@ private:
 
 	bool m_cursorInScene;
 
+	bool m_branching = false;
+	ImVec2 m_points[2];
 	BranchManager bm;
 };

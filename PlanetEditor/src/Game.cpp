@@ -26,6 +26,11 @@ Game::Game()
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
+	m_aboveCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 110.f, 0.1f, 1000.f);
+	m_aboveCamera->setPosition(XMVectorSet(7.37f, 40.0f, 13.5f, 0.f));
+	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
+	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->AddFontDefault();
 	// merge in icons from Font Awesome
@@ -108,10 +113,10 @@ void Game::init() {
 		m_dxRenderer->getDXR().useCamera(m_persCamera.get());
 	}
 
+	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_aboveCamera.get());
+	m_aboveCamera->updateConstantBuffer();
 	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_persCamera.get());
-
 	m_persCamera->updateConstantBuffer();
-
 }
 
 void Game::update(double dt) {
@@ -130,13 +135,31 @@ void Game::update(double dt) {
 		SetCursorPos(p.x, p.y);
 	}
 
-	// Camera movement
-	m_persCameraController->update(float(dt));
-	m_persCamera->updateConstantBuffer();
+	if (m_branching) {
+		m_aboveCameraController->update(float(dt));
+		m_aboveCamera->updateConstantBuffer();
 
-	// Update camera constant buffer for rasterisation
-	for (auto& mesh : m_meshes)
-		mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
+		for (auto& mesh : m_meshes) {
+			mesh->updateCameraCB((ConstantBuffer*)(m_aboveCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
+		}
+		ImGuiIO& io = ImGui::GetIO();
+		if (ImGui::IsMouseClicked(0, false))
+			m_points[0] = io.MousePos;
+		if (Input::IsMouseButtonDown(Input::MouseButton::LEFT)) {
+			m_points[1] = io.MousePos;
+		}
+	}
+	else {
+		// Camera movement
+		m_persCameraController->update(float(dt));
+		m_persCamera->updateConstantBuffer();
+
+		// Update camera constant buffer for rasterisation
+		for (auto& mesh : m_meshes) {
+			mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation		
+		}
+	}
+
 
 	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
 	if (Input::IsKeyPressed('T')) {
@@ -343,6 +366,17 @@ void Game::imguiFunc() {
 				m_dxRenderer->resizeRenderTexture(size.x, size.y);
 				});
 		}
+	}
+	if (m_branching) {
+		auto drawlist = ImGui::GetWindowDrawList();
+		ImVec2 tl(m_points[0].x, m_points[0].y);
+		ImVec2 tr(m_points[1].x, m_points[0].y);
+		ImVec2 bl(m_points[0].x, m_points[1].y);
+		ImVec2 br(m_points[1].x, m_points[1].y);
+		drawlist->AddLine(tl, tr, IM_COL32(255, 255, 255, 255));
+		drawlist->AddLine(br, tr, IM_COL32(255, 255, 255, 255));
+		drawlist->AddLine(br, bl, IM_COL32(255, 255, 255, 255));
+		drawlist->AddLine(tl, bl, IM_COL32(255, 255, 255, 255));
 	}
 	ImGui::End();
 	ImGui::PopStyleVar();
@@ -554,25 +588,27 @@ void Game::imguiTimeline() {
 	
 	ImGui::SameLine();
 	ImGui::BeginGroup();
-	static bool br = false;
-	if (br) {
+	if (m_branching) {
 		static char str0[128] = "";
 		ImGui::PushItemWidth(200);
 		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Ok")) {
 			bm.addBranch(str0);
-			br = false;
+			m_branching = false;
+			m_points[0] = ImVec2(0, 0);
+			m_points[1] = m_points[0];
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel")) {
-			br = false;
+			m_branching = false;
+			m_points[0] = ImVec2(0, 0);
+			m_points[1] = m_points[0];
 		}
 	}
 	else {
 		if (ImGui::Button("Branch", { 60,30 })) {
-			//ImGui::OpenPopup("Branch Window");
-			br = true;
+			m_branching = true;
 		}
 
 		// Make Merge button faded if it isn't possible to merge
