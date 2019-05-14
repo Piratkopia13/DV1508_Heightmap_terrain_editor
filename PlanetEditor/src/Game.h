@@ -45,6 +45,7 @@ private:
 	void imguiTools();
 	void imguiToolOptions();
 	void imguiCommitWindow();
+	void imguiCommitJumpWindow();
 
 private:
 	bool m_showingNewFile;
@@ -69,6 +70,8 @@ private:
 	bool m_toolHelpText;
 
 
+private:
+	unsigned int m_jumpToCommitIndex;
 	
 
 
@@ -78,6 +81,9 @@ private:
 
 	std::unique_ptr<Camera> m_persCamera;
 	std::unique_ptr<CameraController> m_persCameraController;
+
+	std::unique_ptr<Camera> m_aboveCamera;
+	std::unique_ptr<StaticCameraController> m_aboveCameraController;
 
 	std::unique_ptr<Technique> m_technique;
 	std::unique_ptr<DX12Texture2DArray> m_floorTexArray;
@@ -101,4 +107,6 @@ private:
 	Tool* m_currentTool;
 	std::vector<Tool> m_tools;
 	BranchManager m_bm;
+	bool m_branching = false;
+	ImVec2 m_points[2];
 };

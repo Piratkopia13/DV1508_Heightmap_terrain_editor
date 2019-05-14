@@ -28,6 +28,11 @@ Game::Game()
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
+	m_aboveCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 110.f, 0.1f, 1000.f);
+	m_aboveCamera->setPosition(XMVectorSet(7.37f, 40.0f, 13.5f, 0.f));
+	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
+	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
+
 	ImGuiIO& io = ImGui::GetIO();
 	io.Fonts->AddFontDefault();
 	// merge in icons from Font Awesome
@@ -35,6 +40,8 @@ Game::Game()
 	ImFontConfig icons_config; icons_config.MergeMode = true; icons_config.PixelSnapH = true;
 	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config, icons_ranges);
 	// use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
+
+	m_jumpToCommitIndex = 0;
 }
 
 Game::~Game() {
@@ -126,10 +133,10 @@ void Game::init() {
 		m_dxRenderer->getDXR().useCamera(m_persCamera.get());*/
 	}
 
+	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_aboveCamera.get());
+	m_aboveCamera->updateConstantBuffer();
 	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_persCamera.get());
-
 	m_persCamera->updateConstantBuffer();
-
 }
 
 void Game::update(double dt) {
@@ -149,13 +156,31 @@ void Game::update(double dt) {
 		SetCursorPos(p.x, p.y);
 	}
 
-	// Camera movement
-	m_persCameraController->update(float(dt));
-	m_persCamera->updateConstantBuffer();
+	if (m_branching) {
+		m_aboveCameraController->update(float(dt));
+		m_aboveCamera->updateConstantBuffer();
 
-	// Update camera constant buffer for rasterisation
-	for (auto& mesh : m_meshes)
-		mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
+		for (auto& mesh : m_meshes) {
+			mesh->updateCameraCB((ConstantBuffer*)(m_aboveCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
+		}
+		ImGuiIO& io = ImGui::GetIO();
+		if (ImGui::IsMouseClicked(0, false))
+			m_points[0] = io.MousePos;
+		if (Input::IsMouseButtonDown(Input::MouseButton::LEFT)) {
+			m_points[1] = io.MousePos;
+		}
+	}
+	else {
+		// Camera movement
+		m_persCameraController->update(float(dt));
+		m_persCamera->updateConstantBuffer();
+
+		// Update camera constant buffer for rasterisation
+		for (auto& mesh : m_meshes) {
+			mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation		
+		}
+	}
+
 
 	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
@@ -391,6 +416,17 @@ void Game::imguiFunc() {
 				});
 		}
 	}
+	if (m_branching) {
+		auto drawlist = ImGui::GetWindowDrawList();
+		ImVec2 tl(m_points[0].x, m_points[0].y);
+		ImVec2 tr(m_points[1].x, m_points[0].y);
+		ImVec2 bl(m_points[0].x, m_points[1].y);
+		ImVec2 br(m_points[1].x, m_points[1].y);
+		drawlist->AddLine(tl, tr, IM_COL32(255, 255, 255, 255));
+		drawlist->AddLine(br, tr, IM_COL32(255, 255, 255, 255));
+		drawlist->AddLine(br, bl, IM_COL32(255, 255, 255, 255));
+		drawlist->AddLine(tl, bl, IM_COL32(255, 255, 255, 255));
+	}
 	ImGui::End();
 	ImGui::PopStyleVar();
 	if (m_showingTimeline)
@@ -610,25 +646,27 @@ void Game::imguiTimeline() {
 
 	ImGui::SameLine();
 	ImGui::BeginGroup();
-	static bool br = false;
-	if (br) {
+	if (m_branching) {
 		static char str0[128] = "";
 		ImGui::PushItemWidth(200);
 		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Ok")) {
 			m_bm.createBranch(str0, nullptr);
-			br = false;
+			m_branching = false;
+			m_points[0] = ImVec2(0, 0);
+			m_points[1] = m_points[0];
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel")) {
-			br = false;
+			m_branching = false;
+			m_points[0] = ImVec2(0, 0);
+			m_points[1] = m_points[0];
 		}
 	}
 	else {
 		if (ImGui::Button("Branch", { 60,30 })) {
-			//ImGui::OpenPopup("Branch Window");
-			br = true;
+			m_branching = true;
 		}
 
 		// Make Merge button faded if it isn't possible to merge
@@ -652,75 +690,74 @@ void Game::imguiTimeline() {
 		}
 
 		imguiCommitWindow();
-
-		ImGui::EndGroup();
-		// Add spacing to right align command buttons
-		//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
-		ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
-
-
-		// Scroll area
-		ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
-		//static int size = m_bm.getCurrentBranch().getCommands().size();
-		//if(size < m_bm.getCurrentBranch().getCommands().size())
-		//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
-		//size = m_bm.getCurrentBranch().getCommands().size();
-
-		if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
-			ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
-
-		// Draw buttons
-		bool first = true;
-		for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
-			if (i != m_bm.getCurrentBranch().getCommands().size() - 1)
-				ImGui::SameLine();
-			bool currentCommand = m_bm.isCurrentCommand(i);
-			if (currentCommand) {
-				ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
-			}
-
-			if (ImGui::Button(
-				(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
-				if (m_bm.getCommandIndex() > i) {
-					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
-					if (changes.size() > 0)
-						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
-						m_editableMesh->doChanges(changes);
-							});
-				}
-				else if (m_bm.getCommandIndex() < i) {
-					std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
-					if (changes.size() > 0)
-						m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
-						m_editableMesh->doChanges(changes);
-							});
-				}
-				std::cout << "Revert to point" << std::endl;
-			}
-			if (currentCommand)
-				ImGui::PopStyleColor();
-			ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
-			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip(("Go back to this " + m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.name).c_str());
-		}
-
-
-		ImGui::EndChild();
-		// End of scroll area
-
-
-		static int selectedPopupOption = -1;
-		if (ImGui::BeginPopupContextItem("command_popup")) {
-			for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
-				if (ImGui::Selectable(popupOptions[i]))
-					selectedPopupOption = i;
-			ImGui::EndPopup();
-		}
-
-		//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
-		ImGui::PopStyleVar();
-		ImGui::End();
 	}
+	ImGui::EndGroup();
+	// Add spacing to right align command buttons
+	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
+	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
+
+
+	// Scroll area
+	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+	//static int size = m_bm.getCurrentBranch().getCommands().size();
+	//if(size < m_bm.getCurrentBranch().getCommands().size())
+	//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
+	//size = m_bm.getCurrentBranch().getCommands().size();
+
+	if (ImGui::IsWindowHovered() || ImGui::IsWindowFocused())
+		ImGui::SetScrollX(ImGui::GetScrollX() + 20.0f * -ImGui::GetIO().MouseWheel); // Horizontal scroll from vertical wheel input
+
+	// Draw buttons
+	bool first = true;
+	for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
+		if (i != m_bm.getCurrentBranch().getCommands().size() - 1)
+			ImGui::SameLine();
+		bool currentCommand = m_bm.isCurrentCommand(i);
+		if (currentCommand) {
+			ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
+		}
+
+		if (ImGui::Button(
+			(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
+			if (m_bm.getCommandIndex() > i) {
+				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
+				if (changes.size() > 0)
+					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+					m_editableMesh->doChanges(changes);
+						});
+			}
+			else if (m_bm.getCommandIndex() < i) {
+				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
+				if (changes.size() > 0)
+					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+					m_editableMesh->doChanges(changes);
+						});
+			}
+			std::cout << "Revert to point" << std::endl;
+		}
+		if (currentCommand)
+			ImGui::PopStyleColor();
+		ImGui::OpenPopupOnItemClick("command_popup"); // Right click to open popup
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(("Go back to this " + m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.name).c_str());
+	}
+
+
+	ImGui::EndChild();
+	// End of scroll area
+
+
+	static int selectedPopupOption = -1;
+	if (ImGui::BeginPopupContextItem("command_popup")) {
+		for (int i = 0; i < IM_ARRAYSIZE(popupOptions); i++)
+			if (ImGui::Selectable(popupOptions[i]))
+				selectedPopupOption = i;
+		ImGui::EndPopup();
+	}
+
+	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
+	ImGui::PopStyleVar();
+	ImGui::End();
 }
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
@@ -864,6 +901,48 @@ void Game::imguiBranchHistory() {
 			std::cout << "Selected branch commit " << selected << std::endl;
 		}
 		ImGui::NextColumn();
+		bool openPopup = false;
+		if (ImGui::BeginPopupContextItem(("Commit Popup Window ##" + std::to_string(i)).c_str())) {
+			if (ImGui::Button("Go to this commit")) {
+				m_jumpToCommitIndex = i;
+				if (m_bm.getCurrentBranch().getCommands().size() > 0) {
+					openPopup = true;
+				}
+				else {
+					m_dxRenderer->executeNextOpenCopyCommand([&] {
+						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
+					});
+				}
+				ImGui::CloseCurrentPopup();
+			}
+			//ImGui::InputText("##edit", name, IM_ARRAYSIZE(name));
+			if (ImGui::Button("Close"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
+
+		if(openPopup)
+			ImGui::OpenPopup("Warning! Commit Jump##1337");
+
+		if (m_jumpToCommitIndex == i) {
+			if (ImGui::BeginPopupModal("Warning! Commit Jump##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+				ImGui::Text("Are you sure you want to jump to this commit? All uncommitted progress will be lost.");
+
+				if (ImGui::Button("Go to commit", ImVec2(120, 0))) {
+					m_bm.getCurrentBranch().resetCommandList();
+					m_dxRenderer->executeNextOpenCopyCommand([&] {
+						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
+					});
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SetItemDefaultFocus();
+				ImGui::EndPopup();
+			}
+		}
 
 		// Convert time to string
 		std::time_t time_c = std::chrono::system_clock::to_time_t(commit.date);
@@ -944,7 +1023,8 @@ void Game::imguiCommitWindow() {
 		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
 
 		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
-			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, nullptr);
+			EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
 			char bufMsg[128] = "Commit message";
 			strncpy_s(buf, bufMsg, 128);
 			ImGui::CloseCurrentPopup(); 

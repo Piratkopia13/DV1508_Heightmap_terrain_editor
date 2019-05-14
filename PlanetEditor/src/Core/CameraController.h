@@ -35,9 +35,15 @@ protected:
 		return m_cam;
 	}
 
-private:
+protected:
 	Camera* m_cam;
 	float m_pitch, m_yaw, m_roll;
 	float m_speed;
 
+};
+
+class StaticCameraController : public CameraController {
+public:
+	StaticCameraController(Camera* cam, const DirectX::XMVECTOR& startDirection);
+	void update(float dt);
 };

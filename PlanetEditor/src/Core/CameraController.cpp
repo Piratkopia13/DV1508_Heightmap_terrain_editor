@@ -76,3 +76,31 @@ void CameraController::update(float dt) {
 float& CameraController::getMovementSpeed() {
 	return m_speed;
 }
+
+StaticCameraController::StaticCameraController(Camera* cam, const DirectX::XMVECTOR& startDirection) : CameraController(cam, startDirection) {
+	cam->m_dir = XMVectorSet(0.f, -1.f, 0.f, 0.f);
+	cam->m_up = XMVectorSet(0.f, 0.f, 1.f, 0.f);
+}
+
+void StaticCameraController::update(float dt) {
+	float movementSpeed = m_speed * dt;
+
+	XMVECTOR worldUp = XMVectorSet(0.f, 1.f, 0.f, 0.f);
+
+
+	// Camera movement
+	if (Input::IsKeyDown('W'))
+		setCameraPosition(getCameraPosition() + XMVectorSet(0,0,1,0) *movementSpeed);
+	if (Input::IsKeyDown('S'))
+		setCameraPosition(getCameraPosition() - XMVectorSet(0, 0, 1, 0) * movementSpeed);
+
+	if (Input::IsKeyDown('A'))
+		setCameraPosition(getCameraPosition() + XMVectorSet(-1, 0, 0, 0) * movementSpeed);
+	if (Input::IsKeyDown('D'))
+		setCameraPosition(getCameraPosition() - XMVectorSet(-1, 0, 0, 0) * movementSpeed);
+
+	if (Input::IsKeyDown(' '))
+		setCameraPosition(getCameraPosition() + worldUp * movementSpeed);
+	if (Input::IsKeyDown('C'))
+		setCameraPosition(getCameraPosition() - worldUp * movementSpeed);
+}

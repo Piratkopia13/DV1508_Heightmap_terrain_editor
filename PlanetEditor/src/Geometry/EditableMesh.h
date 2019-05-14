@@ -11,7 +11,10 @@ struct Vertex;
 class EditableMesh {
 public:
 	EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY);
+	EditableMesh(const EditableMesh& other);
 	~EditableMesh();
+
+	EditableMesh operator=(const EditableMesh& other);
 
 	struct VertexCommand {
 		float radius;
@@ -30,12 +33,16 @@ public:
 	// Returns intersection point
 	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);
 
+	void setVertexData(Vertex* vertices);
+	Vertex* getVertices();
 
 
 private:
 	std::unique_ptr<DX12Mesh> m_mesh;
 	std::unique_ptr<VertexBuffer> m_vertexBuffer;
 	std::unique_ptr<IndexBuffer> m_indexBuffer;
+
+	DX12Renderer* m_renderer;
 
 	Vertex* vertices;
 	unsigned int* indices;

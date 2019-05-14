@@ -28,6 +28,7 @@ void Branch::addCommand(Command cmd) {
 }
 
 void Branch::createCommit(const std::string & author, const std::string & message, EditableMesh * mesh) {
+	resetCommandList();
 	m_commits.emplace_back(author, message, mesh);
 }
 

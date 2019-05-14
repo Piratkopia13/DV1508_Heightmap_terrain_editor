@@ -45,7 +45,7 @@ public:
 	// Inverse view matrix
 	const DirectX::XMMATRIX& getInvViewMatrix();
 	// Projection matrix
-	const DirectX::XMMATRIX& getProjMatrix();
+	virtual const DirectX::XMMATRIX& getProjMatrix();
 	// Inverse projection matrix
 	const DirectX::XMMATRIX& getInvProjMatrix();
 	// View-projection matrix
@@ -77,5 +77,7 @@ private:
 	float m_fov;
 
 	DX12ConstantBuffer* m_constantBuffer;
+
+	friend class StaticCameraController;
 };
 
