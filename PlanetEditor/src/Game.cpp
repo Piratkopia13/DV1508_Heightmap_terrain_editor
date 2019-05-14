@@ -28,8 +28,8 @@ Game::Game()
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
-	m_aboveCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 110.f, 0.1f, 1000.f);
-	m_aboveCamera->setPosition(XMVectorSet(7.37f, 40.0f, 13.5f, 0.f));
+	m_aboveCamera = std::make_unique<StaticCamera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 200, 0.1f, 1000.f);
+	m_aboveCamera->setPosition(XMVectorSet(100.f, 40.0f, 100.f, 0.f));
 	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
 	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
 
@@ -162,11 +162,13 @@ void Game::update(double dt) {
 		for (auto& mesh : m_meshes) {
 			mesh->updateCameraCB((ConstantBuffer*)(m_aboveCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
 		}
-		ImGuiIO& io = ImGui::GetIO();
-		if (ImGui::IsMouseClicked(0, false))
-			m_points[0] = io.MousePos;
-		if (Input::IsMouseButtonDown(Input::MouseButton::LEFT)) {
-			m_points[1] = io.MousePos;
+		if (m_cursorInScene) {
+			ImGuiIO& io = ImGui::GetIO();
+			if (ImGui::IsMouseClicked(0, false))
+				m_points[0] = io.MousePos;
+			if (Input::IsMouseButtonDown(Input::MouseButton::LEFT)) {
+				m_points[1] = io.MousePos;
+			}
 		}
 	}
 	else {
@@ -648,9 +650,12 @@ void Game::imguiTimeline() {
 	if (m_branching) {
 		static char str0[128] = "";
 		ImGui::PushItemWidth(200);
-		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
+		ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Ok")) {
+			Area a = calcualteArea();
+			std::cout << a.minX << " " << a.minZ << "\n" << a.maxX << " " << a.maxZ << "\n";
+
 			m_bm.createBranch(str0, nullptr);
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
@@ -1034,4 +1039,63 @@ void Game::imguiCommitWindow() {
 		}
 		ImGui::EndPopup();
 	}
+}
+
+Area Game::calcualteArea() {
+	Area result;
+	float width = m_dxRenderer->getWindow()->getWindowWidth();
+	float height = m_dxRenderer->getWindow()->getWindowHeight();
+	XMMATRIX invVP = m_aboveCamera->getInvProjMatrix() * m_aboveCamera->getInvViewMatrix();
+	float x = m_points[0].x;
+	x /= width;
+	x *= 2.f;
+	x -= 1.f;
+	float y = m_points[0].y;
+	y /= height;
+	y *= 2.f;
+	y = 1.f - y;
+	//XMVECTOR v = XMVectorSet(x, y, 0.3f, 1.f);
+	//v = XMVector4Transform(v, invVP);
+	//float w = XMVectorGetW(v);
+	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
+	//XMVECTOR dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
+	//XMVECTOR nor = XMVectorSet(0.f, 1.f, 0.f, 0.f);
+	////float denom = XMVectorGetX(XMVector4Dot(nor, dir));
+	//float t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
+	
+	//result.minX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
+	//result.minZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
+
+	result.minX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
+	result.minZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
+
+	x = m_points[1].x;
+	x /= width;
+	x *= 2.f;
+	x -= 1.f;
+	y = m_points[1].y;
+	y /= height;
+	y *= 2.f;
+	y = 1.f - y;
+	//v = XMVectorSet(x, y, 0.3f, 1.f);
+	//v = XMVector4Transform(v, invVP);
+	//w = XMVectorGetW(v);
+	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
+	//dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
+	////denom = XMVectorGetX(XMVector4Dot(nor, dir));
+	//t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
+
+
+	//result.maxX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
+	//result.maxZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
+
+	result.maxX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
+	result.maxZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
+
+	if (result.maxX < result.minX)
+		std::swap(result.maxX, result.minX);
+	if (result.maxZ < result.minZ)
+		std::swap(result.maxZ, result.minZ);
+
+	return result;
 }

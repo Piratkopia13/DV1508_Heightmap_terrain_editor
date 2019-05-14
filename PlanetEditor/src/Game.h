@@ -17,6 +17,13 @@ class DX12Renderer;
 class DX12Mesh;
 class EditableMesh;
 
+struct Area {
+	float minX;
+	float maxX;
+	float minZ;
+	float maxZ;
+};
+
 class Game : public Application {
 public:
 	Game();
@@ -46,6 +53,9 @@ private:
 	void imguiToolOptions();
 	void imguiCommitWindow();
 	void imguiCommitJumpWindow();
+
+private:
+	Area calcualteArea();
 
 private:
 	bool m_showingNewFile;
@@ -82,7 +92,7 @@ private:
 	std::unique_ptr<Camera> m_persCamera;
 	std::unique_ptr<CameraController> m_persCameraController;
 
-	std::unique_ptr<Camera> m_aboveCamera;
+	std::unique_ptr<StaticCamera> m_aboveCamera;
 	std::unique_ptr<StaticCameraController> m_aboveCameraController;
 
 	std::unique_ptr<Technique> m_technique;

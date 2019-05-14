@@ -79,5 +79,34 @@ private:
 	DX12ConstantBuffer* m_constantBuffer;
 
 	friend class StaticCameraController;
+	friend class StaticCamera;
+};
+
+class StaticCamera : public Camera {
+public:
+	StaticCamera(const float aspectRatio, const float width, const float nearZ, const float farZ) : Camera(aspectRatio, 100, nearZ, farZ), m_width(width) {}
+	const DirectX::XMMATRIX& getProjMatrix() {
+		if (m_projMatNeedsUpdate) {
+			m_projMatrix = XMMatrixOrthographicLH(m_width, m_width / m_aspectRatio, 0.1, 1000);//XMMatrixPerspectiveFovLH(m_fov, m_aspectRatio, m_nearZ, m_farZ)
+			m_invProjMatrix = XMMatrixInverse(nullptr, m_projMatrix);
+			m_projMatNeedsUpdate = false;
+		}
+
+		return m_projMatrix;
+	}
+	void addWidth(float w) {
+		m_width += w;
+		m_projMatNeedsUpdate = true;
+		m_VPMatNeedsUpdate = true;
+		m_cbNeedsUpdate = true;
+	}
+	float getWidth() const {
+		return m_width;
+	}
+	float getHeight() const {
+		return m_width / m_aspectRatio;
+	}
+private:
+	float m_width;
 };
 
