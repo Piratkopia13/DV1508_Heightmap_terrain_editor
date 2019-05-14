@@ -39,8 +39,8 @@ const bool BranchManager::canMerge() {
 	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0;
 }
 
-const bool BranchManager::createBranch(std::string name, Branch* parent) {
-	m_branches.emplace_back(name, parent);
+const bool BranchManager::createBranch(std::string name, Area area, Branch* parent) {
+	m_branches.emplace_back(name, area, parent);
 	return true;
 }
 

@@ -28,7 +28,7 @@ Game::Game()
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
-	m_aboveCamera = std::make_unique<StaticCamera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 200, 0.1f, 1000.f);
+	m_aboveCamera = std::make_unique<StaticCamera>(1700.f / 537.f, 200, 0.1f, 1000.f);
 	m_aboveCamera->setPosition(XMVectorSet(100.f, 40.0f, 100.f, 0.f));
 	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
 	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
@@ -655,9 +655,9 @@ void Game::imguiTimeline() {
 		ImGui::PopItemWidth();
 		if (ImGui::Button("Ok")) {
 			Area a = calcualteArea();
-			std::cout << a.minX << " " << a.minZ << "\n" << a.maxX << " " << a.maxZ << "\n";
+			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-			m_bm.createBranch(str0, nullptr);
+			m_bm.createBranch(str0, a, nullptr);
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
@@ -1044,14 +1044,15 @@ void Game::imguiCommitWindow() {
 
 Area Game::calcualteArea() {
 	Area result;
-	float width = m_dxRenderer->getWindow()->getWindowWidth();
-	float height = m_dxRenderer->getWindow()->getWindowHeight();
+	float width = 1700;//m_dxRenderer->getWindow()->getWindowWidth();
+	float height = 537;//m_dxRenderer->getWindow()->getWindowHeight();
 	XMMATRIX invVP = m_aboveCamera->getInvProjMatrix() * m_aboveCamera->getInvViewMatrix();
 	float x = m_points[0].x;
 	x /= width;
 	x *= 2.f;
 	x -= 1.f;
 	float y = m_points[0].y;
+	y -= 123;
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;
@@ -1075,6 +1076,7 @@ Area Game::calcualteArea() {
 	x *= 2.f;
 	x -= 1.f;
 	y = m_points[1].y;
+	y -= 123;
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;

@@ -17,13 +17,6 @@ class DX12Renderer;
 class DX12Mesh;
 class EditableMesh;
 
-struct Area {
-	float minX;
-	float maxX;
-	float minZ;
-	float maxZ;
-};
-
 class Game : public Application {
 public:
 	Game();
