@@ -16,7 +16,7 @@ private:
 	Vertex* vertices;
 	unsigned int* indices;
 public:
-	Fence(DX12Renderer* renderer, float x, float z);
+	Fence(DX12Renderer* renderer, XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 p3, XMFLOAT3 p4);
 	~Fence();
 	DX12Mesh* getMesh();
 	VertexBuffer* getVertexBuffer();

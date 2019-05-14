@@ -118,7 +118,8 @@ void Game::init() {
 	texFiles2.emplace_back("../assets/textures/refract.png");
 	m_fenceTexArray->loadFromFiles(texFiles2);
 	{
-		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
+		//m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
+		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 50, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 50, 0.1, 50}));
 		m_fence->getMesh()->technique = m_technique.get();
 		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
 		m_meshes.emplace_back(m_fence->getMesh());
