@@ -28,7 +28,7 @@ Game::Game()
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
-	m_aboveCamera = std::make_unique<StaticCamera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 200, 0.1f, 1000.f);
+	m_aboveCamera = std::make_unique<StaticCamera>(1700.f / 537.f, 200, 0.1f, 1000.f);
 	m_aboveCamera->setPosition(XMVectorSet(100.f, 40.0f, 100.f, 0.f));
 	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
 	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
@@ -192,31 +192,31 @@ void Game::update(double dt) {
 		for (auto& mesh : m_meshes) {
 			mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation		
 		}
-	}
 
 
-	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
-		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
-		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+		if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
+			DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
+			DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
 
-		/* 
-		*
-		*		EXAMPLE OF HOW TO USE COMMANDS 
-		*
-		*/
+			/* 
+			*
+			*		EXAMPLE OF HOW TO USE COMMANDS 
+			*
+			*/
 
 
-		EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
+			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-		m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
-			m_editableMesh->doCommand(rayOrigin, rayDir, cmd1);
-		});
-		
-		/* 
-		*
-		*		END OF EXAMPLE OF HOW TO USE COMMANDS 
-		*
-		*/
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
+				m_editableMesh->doCommand(rayOrigin, rayDir, cmd1, m_bm.getCurrentArea());
+			});
+			
+			/* 
+			*
+			*		END OF EXAMPLE OF HOW TO USE COMMANDS 
+			*
+			*/
+		}
 	}
 }
 
@@ -660,11 +660,19 @@ void Game::imguiTimeline() {
 		ImGui::PushItemWidth(200);
 		ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
+		// Make Ok button faded if it isn't name not written
+		int len = strlen(str0);
+		bool areaSelected = m_points[0].y != 0;
+		if (len == 0 || !areaSelected)
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+		}
 		if (ImGui::Button("Ok")) {
 			Area a = calcualteArea();
-			std::cout << a.minX << " " << a.minZ << "\n" << a.maxX << " " << a.maxZ << "\n";
+			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-			m_bm.createBranch(str0, nullptr);
+			m_bm.createBranch(str0, a, nullptr);
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
@@ -673,6 +681,11 @@ void Game::imguiTimeline() {
 				//m_fence->updateVertexData({ 200, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 200 }, { 200, 0.1, 200 });
 			});
 			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+		}
+		if (len == 0 || !areaSelected)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel")) {
@@ -1056,14 +1069,15 @@ void Game::imguiCommitWindow() {
 
 Area Game::calcualteArea() {
 	Area result;
-	float width = m_dxRenderer->getWindow()->getWindowWidth();
-	float height = m_dxRenderer->getWindow()->getWindowHeight();
+	float width = 1700;//m_dxRenderer->getWindow()->getWindowWidth();
+	float height = 537;//m_dxRenderer->getWindow()->getWindowHeight();
 	XMMATRIX invVP = m_aboveCamera->getInvProjMatrix() * m_aboveCamera->getInvViewMatrix();
 	float x = m_points[0].x;
 	x /= width;
 	x *= 2.f;
 	x -= 1.f;
 	float y = m_points[0].y;
+	y -= 123;
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;
@@ -1087,6 +1101,7 @@ Area Game::calcualteArea() {
 	x *= 2.f;
 	x -= 1.f;
 	y = m_points[1].y;
+	y -= 123;
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;

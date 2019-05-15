@@ -6,8 +6,9 @@ Branch::Branch() {
 	m_name = "N/A";
 	m_parent = nullptr;
 }
-Branch::Branch(std::string name, Branch* parent) {
+Branch::Branch(std::string name, Area area, Branch* parent) {
 	m_name = name;
+	m_area = area;
 	m_parent = parent;
 }
 
@@ -17,6 +18,10 @@ const std::string& Branch::getName() {
 
 const Branch* Branch::getParent() {
 	return m_parent;
+}
+
+Area Branch::getArea() const {
+	return m_area;
 }
 
 void Branch::addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition) {
