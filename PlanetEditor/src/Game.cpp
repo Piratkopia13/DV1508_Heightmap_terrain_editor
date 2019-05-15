@@ -118,7 +118,7 @@ void Game::init() {
 	texFiles2.emplace_back("../assets/textures/refract.png");
 	m_fenceTexArray->loadFromFiles(texFiles2);
 	{
-		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 50, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 50, 0.1, 50}));
+		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 10, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 10 }, { 10, 0.1, 10}));
 		m_fence->getMesh()->technique = m_technique.get();
 		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
 
@@ -126,15 +126,17 @@ void Game::init() {
 		m_vertexBuffers.emplace_back(m_fence->getVertexBuffer());
 		m_indexBuffers.emplace_back(m_fence->getIndexBuffer());
 	}
-
+	DX12Texture2DArray* fenceTexture2 = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
+	m_fence2TexArray = std::unique_ptr<DX12Texture2DArray>(fenceTexture2);
+	std::vector<std::string> texFiles3;
+	texFiles3.emplace_back("../assets/textures/reflect.png");
+	m_fence2TexArray->loadFromFiles(texFiles3);
 	{
-		//m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
-		//m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { a.minX, 0.1, a.minZ }, { a.maxX, 0.1, a.minZ }, { a.maxX, 0.1, a.maxZ }, { a.minX, 0.1, a.maxZ }));
-		//m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 70, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 70, 0.1, 50 }));
+		m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }));
 		//m_fence2->updateVertexData({ 70, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 70, 0.1, 50 });
-		//m_fence2->getMesh()->technique = m_technique.get();
-		//m_fence2->getMesh()->setTexture2DArray(m_fenceTexArray.get());
-		//m_meshes.emplace_back(m_fence2->getMesh());
+		m_fence2->getMesh()->technique = m_technique.get();
+		m_fence2->getMesh()->setTexture2DArray(m_fence2TexArray.get());
+		m_meshes.emplace_back(m_fence2->getMesh());
 		//m_vertexBuffers.emplace_back(m_fence2->getVertexBuffer());
 		//m_indexBuffers.emplace_back(m_fence2->getIndexBuffer());
 	}
@@ -676,9 +678,12 @@ void Game::imguiTimeline() {
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
+			p1 = { a.maxX, 0.1, a.minZ };
+			p2 = { a.minX, 0.1, a.minZ };
+			p3 = { a.minX, 0.1, a.maxZ };
+			p4 = { a.maxX, 0.1, a.maxZ };
 			m_dxRenderer->executeNextOpenCopyCommand([&] {
-				m_fence->updateVertexData({ a.maxX, 1.1, a.minZ }, { a.minX, 1.1, a.minZ }, { a.minX, 1.1, a.maxZ }, { a.maxX, 1.1, a.maxZ });
-				//m_fence->updateVertexData({ 200, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 200 }, { 200, 0.1, 200 });
+				m_fence2->updateVertexData(p1, p2, p3, p4);
 			});
 			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
 		}

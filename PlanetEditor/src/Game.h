@@ -102,6 +102,7 @@ private:
 	std::unique_ptr<Fence> m_fence;
 	std::unique_ptr<Fence> m_fence2;
 	std::unique_ptr<DX12Texture2DArray> m_fenceTexArray;
+	std::unique_ptr<DX12Texture2DArray> m_fence2TexArray;
 
 	std::unique_ptr<PotatoFBXImporter> m_fbxImporter;
 	std::vector<PotatoModel*> m_models;
@@ -113,4 +114,8 @@ private:
 	BranchManager m_bm;
 	bool m_branching = false;
 	ImVec2 m_points[2];
+	XMFLOAT3 p1;
+	XMFLOAT3 p2;
+	XMFLOAT3 p3;
+	XMFLOAT3 p4;
 };

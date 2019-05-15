@@ -18,18 +18,6 @@ Fence::Fence(DX12Renderer* renderer, XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 p3, XMFL
 	vertices = new Vertex[nrVertices];
 	indices = new unsigned int[nrIndices];
 
-	//vertices[0] =  { XMFLOAT3{x + -size,     0.1f,z + -size}      , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[1] =  { XMFLOAT3{x + -size + 1, 0.1f,z + -size}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[2] =  { XMFLOAT3{x + -size,     0.1f,z + -size + 1}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[3] =  { XMFLOAT3{x + size - 1,  0.1f,z + -size}   , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[4] =  { XMFLOAT3{x + size,      0.1f,z + -size}       , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[5] =  { XMFLOAT3{x + size,      0.1f,z + -size + 1}   , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[6] =  { XMFLOAT3{x + size,      0.1f,z + size - 1}    , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[7] =  { XMFLOAT3{x + size,      0.1f,z + size}        , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[8] =  { XMFLOAT3{x + size - 1,  0.1f,z + size}    , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[9] =  { XMFLOAT3{x + -size + 1, 0.1f,z + size}   , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[10] = { XMFLOAT3{x + -size,     0.1f,z + size}      , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
-	//vertices[11] = { XMFLOAT3{x + -size,     0.1f,z + size - 1}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
 	vertices[0] = { p1      , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
 	vertices[1] = { XMFLOAT3{p1.x + 1, p1.y, p1.z}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
 	vertices[2] = { XMFLOAT3{p1.x, p1.y, p1.z + 1}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
@@ -69,11 +57,11 @@ Fence::Fence(DX12Renderer* renderer, XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 p3, XMFL
 
 	//left
 	indices[18] = 9;
-	indices[19] = 10;
+	indices[19] = 1;
 	indices[20] = 0;
-	indices[21] = 0;
+	indices[21] = 1;
 	indices[22] = 9;
-	indices[23] = 1;
+	indices[23] = 10;
 
 	//m_vertexBuffer->setData(vertices, nrVertices * sizeof(Vertex), 0);
 	m_dx12vertexBuffer->setData(vertices, nrVertices * sizeof(Vertex), 0);
@@ -103,7 +91,6 @@ IndexBuffer * Fence::getIndexBuffer()
 void Fence::updateVertexData(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 p3, XMFLOAT3 p4)
 {
 	int nrVertices = 12;
-	//vertices = new Vertex[nrVertices];
 	vertices[0] = { p1      , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
 	vertices[1] = { XMFLOAT3{p1.x + 1, p1.y, p1.z}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
 	vertices[2] = { XMFLOAT3{p1.x, p1.y, p1.z + 1}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
@@ -117,6 +104,5 @@ void Fence::updateVertexData(XMFLOAT3 p1, XMFLOAT3 p2, XMFLOAT3 p3, XMFLOAT3 p4)
 	vertices[10] = { p4      , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
 	vertices[11] = { XMFLOAT3{p4.x, p4.y, p4.z - 1}  , XMFLOAT3{0.f, 1.f, 0.f}, XMFLOAT2{0,0} };
 
-	//m_vertexBuffer->setData(vertices, nrVertices * sizeof(Vertex), 0);
 	m_dx12vertexBuffer->updateData(vertices, nrVertices * sizeof(Vertex));
 }
