@@ -49,11 +49,12 @@ public:
 
 
 	Branch();
-	Branch(std::string name, Area area = {}, Branch* parent = nullptr);
+	Branch(std::string name, Area area = {0, 200, 0, 200}, Branch* parent = nullptr);
 	~Branch() = default;
 
 	const std::string& getName();
 	const Branch* getParent();
+	Area getArea() const;
 
 	void addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition);
 	void addCommand(Command cmd);

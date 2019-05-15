@@ -4,6 +4,7 @@
 #include "../DX12/DX12Renderer.h"
 #include "../DX12/DX12VertexBuffer.h"
 #include "../../assets/shaders/CommonRT.hlsl"
+#include "../GitClone/Branch.h"
 
 #include <chrono>
 
@@ -122,7 +123,7 @@ IndexBuffer * EditableMesh::getIndexBuffer() {
 	return m_indexBuffer.get();
 }
 
-void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd) {
+void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd, Area area) {
 	int maxIntDistX = int(cmd.radius / m_vertLengthX);
 	int maxIntDistY = int(cmd.radius / m_vertLengthY);
 	bool rayHit = false;
@@ -160,6 +161,10 @@ void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, 
 				int middleY = int(round(intersectionPoint.z / m_vertLengthY));
 				for (size_t y_2 = max(0, middleY - maxIntDistY); y_2 < min(m_numVertsY, middleY + maxIntDistY); y_2++) {
 					for (size_t x_2 = max(0, middleX - maxIntDistX); x_2 < min(m_numVertsX, middleX + maxIntDistX); x_2++) {
+						auto& p = vertices[y_2 * m_numVertsX + x_2].position;
+						if (p.x > area.maxX || p.x < area.minX || p.z > area.maxZ || p.z < area.minZ)
+							continue;
+
 						float a = std::powf(float(y_2) * m_vertLengthY - float(middleY) * m_vertLengthY, 2.f);
 						float b = std::powf(float(x_2) * m_vertLengthX - float(middleX) * m_vertLengthX, 2.f);
 						float dist = std::sqrtf(a + b);

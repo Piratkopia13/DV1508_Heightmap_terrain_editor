@@ -35,6 +35,10 @@ Branch& BranchManager::getCurrentBranch() {
 	return m_branches[m_index];
 }
 
+Area BranchManager::getCurrentArea() {
+	return getCurrentBranch().getArea();
+}
+
 const bool BranchManager::canMerge() {
 	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0;
 }

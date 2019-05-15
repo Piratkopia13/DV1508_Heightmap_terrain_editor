@@ -181,31 +181,31 @@ void Game::update(double dt) {
 		for (auto& mesh : m_meshes) {
 			mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation		
 		}
-	}
 
 
-	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
-		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
-		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+		if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
+			DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
+			DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
 
-		/* 
-		*
-		*		EXAMPLE OF HOW TO USE COMMANDS 
-		*
-		*/
+			/* 
+			*
+			*		EXAMPLE OF HOW TO USE COMMANDS 
+			*
+			*/
 
 
-		EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
+			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-		m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
-			m_editableMesh->doCommand(rayOrigin, rayDir, cmd1);
-		});
-		
-		/* 
-		*
-		*		END OF EXAMPLE OF HOW TO USE COMMANDS 
-		*
-		*/
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
+				m_editableMesh->doCommand(rayOrigin, rayDir, cmd1, m_bm.getCurrentArea());
+			});
+			
+			/* 
+			*
+			*		END OF EXAMPLE OF HOW TO USE COMMANDS 
+			*
+			*/
+		}
 	}
 
 }
@@ -653,6 +653,14 @@ void Game::imguiTimeline() {
 		ImGui::PushItemWidth(200);
 		ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
+		// Make Ok button faded if it isn't name not written
+		int len = strlen(str0);
+		bool areaSelected = m_points[0].y != 0;
+		if (len == 0 || !areaSelected)
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+		}
 		if (ImGui::Button("Ok")) {
 			Area a = calcualteArea();
 			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
@@ -661,6 +669,11 @@ void Game::imguiTimeline() {
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
+		}
+		if (len == 0 || !areaSelected)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel")) {

@@ -20,6 +20,10 @@ const Branch* Branch::getParent() {
 	return m_parent;
 }
 
+Area Branch::getArea() const {
+	return m_area;
+}
+
 void Branch::addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition) {
 	m_commands.push_back({tool, params, newPosition});
 }
