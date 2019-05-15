@@ -118,13 +118,25 @@ void Game::init() {
 	texFiles2.emplace_back("../assets/textures/refract.png");
 	m_fenceTexArray->loadFromFiles(texFiles2);
 	{
-		//m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
 		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 50, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 50, 0.1, 50}));
 		m_fence->getMesh()->technique = m_technique.get();
 		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+
 		m_meshes.emplace_back(m_fence->getMesh());
 		m_vertexBuffers.emplace_back(m_fence->getVertexBuffer());
 		m_indexBuffers.emplace_back(m_fence->getIndexBuffer());
+	}
+
+	{
+		//m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
+		//m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { a.minX, 0.1, a.minZ }, { a.maxX, 0.1, a.minZ }, { a.maxX, 0.1, a.maxZ }, { a.minX, 0.1, a.maxZ }));
+		//m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 70, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 70, 0.1, 50 }));
+		//m_fence2->updateVertexData({ 70, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 70, 0.1, 50 });
+		//m_fence2->getMesh()->technique = m_technique.get();
+		//m_fence2->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+		//m_meshes.emplace_back(m_fence2->getMesh());
+		//m_vertexBuffers.emplace_back(m_fence2->getVertexBuffer());
+		//m_indexBuffers.emplace_back(m_fence2->getIndexBuffer());
 	}
 
 	if (m_dxRenderer->isDXREnabled()) {
@@ -140,7 +152,6 @@ void Game::init() {
 }
 
 void Game::update(double dt) {
-
 	Input::SetInputAllowed((m_cursorInScene || Input::IsCursorHidden()));
 
 	keybinds();
@@ -207,7 +218,6 @@ void Game::update(double dt) {
 		*
 		*/
 	}
-
 }
 
 void Game::fixedUpdate(double dt) {
@@ -219,13 +229,10 @@ void Game::render(double dt) {
 	// Submit rasterization meshes
 	for (auto& mesh : m_meshes)
 		getRenderer().submit(mesh);
-
 	// Render frame with gui
 	std::function<void()> imgui = std::bind(&Game::imguiFunc, this);
 	m_dxRenderer->frame(imgui);
-
 	getRenderer().present();
-
 }
 
 void Game::keybinds() {
@@ -661,6 +668,11 @@ void Game::imguiTimeline() {
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
+			m_dxRenderer->executeNextOpenCopyCommand([&] {
+				m_fence->updateVertexData({ a.maxX, 1.1, a.minZ }, { a.minX, 1.1, a.minZ }, { a.minX, 1.1, a.maxZ }, { a.maxX, 1.1, a.maxZ });
+				//m_fence->updateVertexData({ 200, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 200 }, { 200, 0.1, 200 });
+			});
+			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel")) {

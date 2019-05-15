@@ -107,6 +107,7 @@ private:
 	std::unique_ptr<EditableMesh> m_editableMesh;
 
 	std::unique_ptr<Fence> m_fence;
+	std::unique_ptr<Fence> m_fence2;
 	std::unique_ptr<DX12Texture2DArray> m_fenceTexArray;
 
 	std::unique_ptr<PotatoFBXImporter> m_fbxImporter;
