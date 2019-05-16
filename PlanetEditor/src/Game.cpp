@@ -1107,6 +1107,7 @@ void Game::imguiCommitWindow() {
 	if (ImGui::BeginPopupModal("Choose your destiny...##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::Text("You can either do the commit on your current branch and loose the commits after this point or commit to a new branch and keep this branch intact.");
 
+		// Commit on this branch and overwrite the history after the current commit's index
 		if (ImGui::Button("Commit on this branch", ImVec2(120, 0))) {
 			m_bm.getCurrentBranch().resetCommandList();
 			auto commits = m_bm.getCurrentBranch().getCommits();
@@ -1120,6 +1121,7 @@ void Game::imguiCommitWindow() {
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine(); 
+		// Commit on new branch
 		if (ImGui::Button("Commit on new branch", ImVec2(120, 0))) {
 			// TODO: Implement
 			ImGui::CloseCurrentPopup();
