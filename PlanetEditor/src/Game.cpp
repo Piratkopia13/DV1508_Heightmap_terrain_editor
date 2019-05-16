@@ -199,7 +199,16 @@ void Game::update(double dt) {
 
 		if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 			DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
-			DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+			//DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+			POINT p;
+			GetCursorPos(&p);
+			ScreenToClient(*reinterpret_cast<DX12Renderer*>(&getRenderer())->getWindow()->getHwnd(), &p);
+
+			XMVECTOR scenePos = DirectX::XMVectorSet(
+				(2.0f * (p.x - m_sceneWindow.minX) / m_sceneWindow.maxX) - 1.0f,
+				((2.0f * (p.y - m_sceneWindow.minZ) / m_sceneWindow.maxZ) - 1.0f)*-1.0f, -1.0f, 0.0f);
+			DirectX::XMVECTOR rayDirMouse = m_persCamera->screenPointToRay(scenePos);
+
 
 			/* 
 			*
@@ -210,8 +219,8 @@ void Game::update(double dt) {
 
 			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, cmd1, m_bm.getCurrentArea());
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
+				m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
 			});
 			
 			/* 
@@ -302,7 +311,7 @@ void Game::imguiInit() {
 	m_toolWidth = 10;
 	m_toolStrength = 10;
 
-
+	m_sceneWindow = { 0,0,1,1 };
 
 
 	m_historyWarning = 20;
@@ -419,10 +428,19 @@ void Game::imguiFunc() {
 
 	if (m_dxRenderer->isRenderingToTexture())
 		ImGui::Image((ImTextureID)m_dxRenderer->getRenderedTextureGPUHandle().ptr, size);
+
+	m_sceneWindow.minX = ImGui::GetWindowPos().x;
+	m_sceneWindow.minZ = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y;
+	m_sceneWindow.maxX = ImGui::GetWindowContentRegionMax().x;
+	m_sceneWindow.maxZ = ImGui::GetWindowContentRegionMax().y;
 	// Resize render output to window size
 	if (lastSize.x != size.x || lastSize.y != size.y) {
 		// Ignore imgui bug size
 		if (size.y > 0) {
+			
+
+			//std::cout << m_sceneWindow.print() << std::endl;
+
 			m_persCamera->setAspectRatio(size.x / size.y);
 			m_dxRenderer->executeNextPreFrameCommand([&]() {
 				m_dxRenderer->resizeRenderTexture(size.x, size.y);

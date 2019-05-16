@@ -47,6 +47,8 @@ private:
 	void imguiCommitWindow();
 	void imguiCommitJumpWindow();
 
+
+
 private:
 	Area calcualteArea();
 
@@ -64,6 +66,8 @@ private:
 	bool m_showingBranchHistory;
 
 
+	Area m_sceneWindow;
+
 
 private:
 	float m_toolWidth;
@@ -72,6 +76,8 @@ private:
 	int m_historyWarning;
 	bool m_historyWarningShow;
 	bool m_toolHelpText;
+
+
 
 
 private:

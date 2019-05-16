@@ -8,6 +8,11 @@ struct Area {
 	float maxX;
 	float minZ;
 	float maxZ;
+
+	std::string print() {
+		return "x(" + std::to_string(minX) + ":" + std::to_string(maxX) +
+			") z(" + std::to_string(minZ) + ":" + std::to_string(maxZ)+")";
+	}
 };
 
 class Branch {
