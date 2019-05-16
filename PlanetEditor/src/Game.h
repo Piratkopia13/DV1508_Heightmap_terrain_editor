@@ -72,6 +72,7 @@ private:
 
 private:
 	unsigned int m_jumpToCommitIndex;
+	unsigned int m_currentCommitIndex;
 	
 
 

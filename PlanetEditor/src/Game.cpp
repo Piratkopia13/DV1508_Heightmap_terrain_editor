@@ -41,6 +41,7 @@ Game::Game()
 	io.Fonts->AddFontFromFileTTF(FONT_ICON_FILE_NAME_FAS, 16.0f, &icons_config, icons_ranges);
 	// use FONT_ICON_FILE_NAME_FAR if you want regular instead of solid
 
+	m_currentCommitIndex = 0;
 	m_jumpToCommitIndex = 0;
 }
 
@@ -720,17 +721,19 @@ void Game::imguiTimeline() {
 			(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
 			if (m_bm.getCommandIndex() > i) {
 				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
-				if (changes.size() > 0)
+				if (changes.size() > 0) {
 					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
-					m_editableMesh->doChanges(changes);
-						});
+						m_editableMesh->doChanges(changes);
+					});
+				}
 			}
 			else if (m_bm.getCommandIndex() < i) {
 				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
-				if (changes.size() > 0)
+				if (changes.size() > 0) {
 					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
-					m_editableMesh->doChanges(changes);
-						});
+						m_editableMesh->doChanges(changes);
+					});
+				}
 			}
 			std::cout << "Revert to point" << std::endl;
 		}
@@ -908,6 +911,7 @@ void Game::imguiBranchHistory() {
 					openPopup = true;
 				}
 				else {
+					m_currentCommitIndex = m_jumpToCommitIndex;
 					m_dxRenderer->executeNextOpenCopyCommand([&] {
 						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
 					});
@@ -932,6 +936,7 @@ void Game::imguiBranchHistory() {
 					m_dxRenderer->executeNextOpenCopyCommand([&] {
 						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
 					});
+					m_currentCommitIndex = m_jumpToCommitIndex;
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::SameLine();
@@ -1015,23 +1020,60 @@ void Game::imguiToolOptions() {
 }
 
 void Game::imguiCommitWindow() {
+	bool openPopup = false;
+	static char buf[128] = "Commit message";
 	if (ImGui::BeginPopupModal("Commit##Window", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-		static char buf[128] = "Commit message";
 		ImGui::Text("Input Message");
 		ImGui::SetItemDefaultFocus();
 		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
-
 		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
-			EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
-			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
-			char bufMsg[128] = "Commit message";
-			strncpy_s(buf, bufMsg, 128);
-			ImGui::CloseCurrentPopup(); 
+			if (m_currentCommitIndex == m_bm.getCurrentBranch().getCommits().size() - 1 || m_bm.getCurrentBranch().getCommits().size() == 0) {
+				EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+				m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+				char bufMsg[128] = "Commit message";
+				strncpy_s(buf, bufMsg, 128);
+				m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
+				ImGui::CloseCurrentPopup();
+			}
+			else {
+				openPopup = true;
+			}
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel", ImVec2(120, 0))) { 
 			ImGui::CloseCurrentPopup(); 
 		}
+		ImGui::EndPopup();
+	}
+
+	if (openPopup)
+		ImGui::OpenPopup("Choose your destiny...##1337");
+
+	if (ImGui::BeginPopupModal("Choose your destiny...##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("You can either do the commit on your current branch and loose the commits after this point or commit to a new branch and keep this branch intact.");
+
+		if (ImGui::Button("Commit on this branch", ImVec2(120, 0))) {
+			m_bm.getCurrentBranch().resetCommandList();
+			auto commits = m_bm.getCurrentBranch().getCommits();
+			// TODO: Can probably be done in a better way.
+			m_bm.getCurrentBranch().clearCommitsToIndex(m_currentCommitIndex);
+			EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+			char bufMsg[128] = "Commit message";
+			strncpy_s(buf, bufMsg, 128);
+			m_currentCommitIndex = commits.size() - 1;
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine(); 
+		if (ImGui::Button("Commit on new branch", ImVec2(120, 0))) {
+			// TODO: Implement
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SetItemDefaultFocus();
 		ImGui::EndPopup();
 	}
 }

@@ -32,6 +32,11 @@ void Branch::createCommit(const std::string & author, const std::string & messag
 	m_commits.emplace_back(author, message, mesh);
 }
 
+void Branch::clearCommitsToIndex(unsigned int index) {
+	while (m_commits.size() - 1 > index)
+		m_commits.pop_back();
+}
+
 std::vector<Command>& Branch::getCommands() {
 	return m_commands;
 }
