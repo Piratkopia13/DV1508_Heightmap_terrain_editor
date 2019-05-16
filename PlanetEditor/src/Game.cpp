@@ -152,6 +152,13 @@ void Game::init() {
 	m_aboveCamera->updateConstantBuffer();
 	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_persCamera.get());
 	m_persCamera->updateConstantBuffer();
+
+
+	// Initial branches
+	EditableMesh* meshCpy = new EditableMesh(*m_editableMesh.get());
+	m_bm.createBranch("Master", { 0, 200, 0, 200 }, nullptr, meshCpy);
+	/*m_bm.createBranch("potato", { 0, 200, 0, 200 }, &m_bm.getCurrentBranch(), meshCpy);
+	m_bm.createBranch("test", { 0, 200, 0, 200 }, & m_bm.getCurrentBranch(), meshCpy);*/
 }
 
 void Game::update(double dt) {
@@ -676,7 +683,7 @@ void Game::imguiTimeline() {
 			Area a = calcualteArea();
 			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-			m_bm.createBranch(str0, a, nullptr);
+			m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), m_editableMesh.get());
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
@@ -826,26 +833,93 @@ void Game::imguiGraph() {
 	enum CommitType {
 		COMMAND, MERGE, NEWBRANCH
 	};
-	struct DummyCommit {
+	struct DrawCommit {
 		//Command cmd;
-		std::string msg;
-		std::string branch;
+		std::string branchName;
 		CommitType type;
 		std::string otherBranch;
 	};
-	std::vector<DummyCommit> commits;
+	std::vector<DrawCommit> commits;
 
-	// Fill with dummy commits to dummy branches
-	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "Master" });
-	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	commits.push_back({ "Moved thing", "Banana", NEWBRANCH, "Master" });
-	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	for (int i = 0; i < 3; i++) {
-		commits.push_back({ "Placed tree", "Feature", COMMAND, "" });
+	// Fill vector with branches
+
+	auto& branches = m_bm.getAllBranches();
+
+	// Branch indices vector
+	std::vector<std::pair<int, bool>> branchIndices;
+	branchIndices.reserve(branches.size());
+	for (int i = 0; i < branches.size(); i++) {
+		branchIndices.emplace_back(std::pair{ i, false });
 	}
-	commits.push_back({ "Placed tree", "Feature", MERGE, "Master" });
-	commits.push_back({ "Moved thing", "Banana", COMMAND, "" });
+
+	// First commit is master branch
+	//for (auto& branch : branches) {
+		//if (!branch.getParent()) {
+			commits.push_back({ branches[0].getName(), COMMAND, "" });
+			branchIndices.erase(branchIndices.begin());
+			//break;
+		//}
+	//}
+	
+	while (!branchIndices.empty()) {
+		Branch* nextBranch = nullptr;
+		DrawCommit cmt;
+		int branchIndex = -1;
+		int i = 0;
+		std::chrono::system_clock::time_point oldestDate = std::chrono::system_clock::now();
+		std::chrono::system_clock::time_point newestDate = std::chrono::system_clock::from_time_t(0);
+		for (auto& iPair : branchIndices) {
+			int index = iPair.first;
+
+			//for (auto& branch : branches) {
+
+				if (!iPair.second) {
+					// First commit will always be an empty "created branch"
+					auto& branchDate = branches[index].getCommits()[0].date;
+					if (branchDate <= oldestDate) {
+						nextBranch = &branches[index];
+						cmt = { nextBranch->getName(), NEWBRANCH, nextBranch->getParent()->getName() };
+						oldestDate = branchDate;
+						branchIndex = i;
+					}
+					//break;
+				} else {
+					for (int j = 1; j < branches[index].getCommits().size(); j++) {
+						auto& branchDate = branches[index].getCommits()[j].date;
+						if (branchDate >= newestDate) {
+							nextBranch = &branches[index];
+							cmt = { nextBranch->getName(), COMMAND, "" };
+							newestDate = branchDate;
+							branchIndex = i;
+						}
+					}
+
+			//}
+
+			}
+			i++;
+		}
+		if (nextBranch) {
+			commits.push_back(cmt);
+			if (cmt.type == COMMAND || branches[branchIndices[branchIndex].first].getCommits().size() <= 1)
+				branchIndices.erase(branchIndices.begin() + branchIndex);
+			else if (cmt.type == NEWBRANCH)
+				branchIndices[branchIndex].second = true;
+
+		}
+	}
+
+	//// Fill with dummy commits to dummy branches
+	//commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	//commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "Master" });
+	//commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	//commits.push_back({ "Moved thing", "Banana", NEWBRANCH, "Master" });
+	//commits.push_back({ "Moved thing", "Master", COMMAND, "" });
+	//for (int i = 0; i < 3; i++) {
+	//	commits.push_back({ "Placed tree", "Feature", COMMAND, "" });
+	//}
+	//commits.push_back({ "Placed tree", "Feature", MERGE, "Master" });
+	//commits.push_back({ "Moved thing", "Banana", COMMAND, "" });
 
 	static ImVec2 lastGraphSize = ImVec2(40, 40);
 	ImGui::BeginChild("##ScrollingRegion", lastGraphSize, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
@@ -873,16 +947,16 @@ void Game::imguiGraph() {
 	bool first = true;
 	for (int i = 0; i < commits.size(); i++) {
 		auto commit = commits[i];
-		if (activeBranches.find(commit.branch) == activeBranches.end()) {
+		if (activeBranches.find(commit.branchName) == activeBranches.end()) {
 			// commit on branch not known before
 			BranchDrawInfo info;
-			srand(hasher(commit.branch));
+			srand(hasher(commit.branchName));
 			info.color = IM_COL32(rand() % 255 + 10, rand() % 255 + 10, rand() % 255 + 10, 255); // Random bright-ish color
 			info.lastCommitX = p.x + max(i-1, 0) * distanceBetweenCommits;
 			lastOffset = info.yOffset = lastOffset + distanceBetweenBranches;
-			activeBranches.insert({ commit.branch, info });
+			activeBranches.insert({ commit.branchName, info });
 		}
-		BranchDrawInfo& info = activeBranches[commit.branch];
+		BranchDrawInfo& info = activeBranches[commit.branchName];
 
 		float x = p.x + i * distanceBetweenCommits;
 		float y = p.y + info.yOffset;

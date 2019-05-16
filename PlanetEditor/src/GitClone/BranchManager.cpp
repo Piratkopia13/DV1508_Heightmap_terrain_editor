@@ -4,13 +4,11 @@
 
 BranchManager::BranchManager() {
 	//TODO: add loadbranches
-	m_branches.push_back(Branch("Master"));
-	m_branches.push_back(Branch("potato"));
-	m_branches.push_back(Branch("test"));
 	m_index = 0;
 	m_commandIndex = -1;
 	//m_currentBranch = &m_branches[0];
 	//m_currentCommand = nullptr;
+	m_branches.reserve(50);
 }
 std::vector<const char*> BranchManager::getBranchNames() {
 	std::vector<const char*> brNames;
@@ -35,6 +33,10 @@ Branch& BranchManager::getCurrentBranch() {
 	return m_branches[m_index];
 }
 
+std::vector<Branch>& BranchManager::getAllBranches() {
+	return m_branches;
+}
+
 Area BranchManager::getCurrentArea() {
 	return getCurrentBranch().getArea();
 }
@@ -43,8 +45,9 @@ const bool BranchManager::canMerge() {
 	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0;
 }
 
-const bool BranchManager::createBranch(std::string name, Area area, Branch* parent) {
+const bool BranchManager::createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh) {
 	m_branches.emplace_back(name, area, parent);
+	m_branches[m_branches.size() - 1].createCommit("Branch", "Branch created", initalMesh);
 	return true;
 }
 

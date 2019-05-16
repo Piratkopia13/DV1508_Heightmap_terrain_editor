@@ -27,11 +27,13 @@ public:
 	const int getIndex();
 	const int getCommandIndex();
 	Branch& getCurrentBranch();
+	std::vector<Branch>& getAllBranches();
+
 
 	Area getCurrentArea();
 	const bool canMerge();
 
-	const bool createBranch(std::string name, Area area, Branch* parent);
+	const bool createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh);
 	const bool setBranch(size_t index);
 	const bool setBranch(std::string name);
 
