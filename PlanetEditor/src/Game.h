@@ -48,6 +48,9 @@ private:
 	void imguiCommitJumpWindow();
 
 private:
+	Area calcualteArea();
+
+private:
 	bool m_showingNewFile;
 	bool m_showingOpenFile;
 	bool m_showingSaveFileAs;
@@ -67,6 +70,7 @@ private:
 	float m_toolStrength;
 
 	int m_historyWarning;
+	bool m_historyWarningShow;
 	bool m_toolHelpText;
 
 
@@ -83,7 +87,7 @@ private:
 	std::unique_ptr<Camera> m_persCamera;
 	std::unique_ptr<CameraController> m_persCameraController;
 
-	std::unique_ptr<Camera> m_aboveCamera;
+	std::unique_ptr<StaticCamera> m_aboveCamera;
 	std::unique_ptr<StaticCameraController> m_aboveCameraController;
 
 	std::unique_ptr<Technique> m_technique;
@@ -98,7 +102,9 @@ private:
 	std::unique_ptr<EditableMesh> m_editableMesh;
 
 	std::unique_ptr<Fence> m_fence;
+	std::unique_ptr<Fence> m_fence2;
 	std::unique_ptr<DX12Texture2DArray> m_fenceTexArray;
+	std::unique_ptr<DX12Texture2DArray> m_fence2TexArray;
 
 	std::unique_ptr<PotatoFBXImporter> m_fbxImporter;
 	std::vector<PotatoModel*> m_models;
@@ -110,4 +116,8 @@ private:
 	BranchManager m_bm;
 	bool m_branching = false;
 	ImVec2 m_points[2];
+	XMFLOAT3 p1;
+	XMFLOAT3 p2;
+	XMFLOAT3 p3;
+	XMFLOAT3 p4;
 };

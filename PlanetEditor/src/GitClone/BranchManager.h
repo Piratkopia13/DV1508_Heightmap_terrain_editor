@@ -28,9 +28,10 @@ public:
 	const int getCommandIndex();
 	Branch& getCurrentBranch();
 
+	Area getCurrentArea();
 	const bool canMerge();
 
-	const bool createBranch(std::string name, Branch* parent);
+	const bool createBranch(std::string name, Area area, Branch* parent);
 	const bool setBranch(size_t index);
 	const bool setBranch(std::string name);
 

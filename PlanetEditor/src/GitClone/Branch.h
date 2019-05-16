@@ -3,7 +3,12 @@
 #include "IconsFontAwesome5.h"
 #include "../Geometry/EditableMesh.h"
 
-
+struct Area {
+	float minX;
+	float maxX;
+	float minZ;
+	float maxZ;
+};
 
 class Branch {
 public:
@@ -44,11 +49,12 @@ public:
 
 
 	Branch();
-	Branch(std::string name, Branch* parent = nullptr);
+	Branch(std::string name, Area area = {0, 200, 0, 200}, Branch* parent = nullptr);
 	~Branch() = default;
 
 	const std::string& getName();
 	const Branch* getParent();
+	Area getArea() const;
 
 	void addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition);
 	void addCommand(Command cmd);
@@ -63,6 +69,7 @@ private:
 	std::string m_name;
 	std::vector<Command> m_commands;
 	Branch* m_parent;
+	Area m_area;
 
 	std::vector<Commit> m_commits;
 };

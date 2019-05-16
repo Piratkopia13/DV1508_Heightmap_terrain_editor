@@ -7,6 +7,7 @@ class DX12Renderer;
 class VertexBuffer;
 class IndexBuffer;
 struct Vertex;
+struct Area;
 
 class EditableMesh {
 public:
@@ -28,7 +29,7 @@ public:
 	VertexBuffer* getVertexBuffer();
 	IndexBuffer* getIndexBuffer();
 
-	void doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd);
+	void doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd, Area area);
 	void doChanges(const std::vector<std::pair<unsigned int, XMFLOAT3>>& delta);
 	// Returns intersection point
 	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);

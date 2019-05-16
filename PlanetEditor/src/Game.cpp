@@ -28,8 +28,8 @@ Game::Game()
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
-	m_aboveCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 110.f, 0.1f, 1000.f);
-	m_aboveCamera->setPosition(XMVectorSet(7.37f, 40.0f, 13.5f, 0.f));
+	m_aboveCamera = std::make_unique<StaticCamera>(1700.f / 537.f, 200, 0.1f, 1000.f);
+	m_aboveCamera->setPosition(XMVectorSet(100.f, 40.0f, 100.f, 0.f));
 	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
 	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
 
@@ -119,12 +119,27 @@ void Game::init() {
 	texFiles2.emplace_back("../assets/textures/refract.png");
 	m_fenceTexArray->loadFromFiles(texFiles2);
 	{
-		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, 50, 30));
+		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 10, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 10 }, { 10, 0.1, 10}));
 		m_fence->getMesh()->technique = m_technique.get();
 		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+
 		m_meshes.emplace_back(m_fence->getMesh());
 		m_vertexBuffers.emplace_back(m_fence->getVertexBuffer());
 		m_indexBuffers.emplace_back(m_fence->getIndexBuffer());
+	}
+	DX12Texture2DArray* fenceTexture2 = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
+	m_fence2TexArray = std::unique_ptr<DX12Texture2DArray>(fenceTexture2);
+	std::vector<std::string> texFiles3;
+	texFiles3.emplace_back("../assets/textures/reflect.png");
+	m_fence2TexArray->loadFromFiles(texFiles3);
+	{
+		m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }));
+		//m_fence2->updateVertexData({ 70, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 70, 0.1, 50 });
+		m_fence2->getMesh()->technique = m_technique.get();
+		m_fence2->getMesh()->setTexture2DArray(m_fence2TexArray.get());
+		m_meshes.emplace_back(m_fence2->getMesh());
+		//m_vertexBuffers.emplace_back(m_fence2->getVertexBuffer());
+		//m_indexBuffers.emplace_back(m_fence2->getIndexBuffer());
 	}
 
 	if (m_dxRenderer->isDXREnabled()) {
@@ -140,7 +155,6 @@ void Game::init() {
 }
 
 void Game::update(double dt) {
-
 	Input::SetInputAllowed((m_cursorInScene || Input::IsCursorHidden()));
 
 	keybinds();
@@ -163,11 +177,13 @@ void Game::update(double dt) {
 		for (auto& mesh : m_meshes) {
 			mesh->updateCameraCB((ConstantBuffer*)(m_aboveCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation
 		}
-		ImGuiIO& io = ImGui::GetIO();
-		if (ImGui::IsMouseClicked(0, false))
-			m_points[0] = io.MousePos;
-		if (Input::IsMouseButtonDown(Input::MouseButton::LEFT)) {
-			m_points[1] = io.MousePos;
+		if (m_cursorInScene) {
+			ImGuiIO& io = ImGui::GetIO();
+			if (ImGui::IsMouseClicked(0, false))
+				m_points[0] = io.MousePos;
+			if (Input::IsMouseButtonDown(Input::MouseButton::LEFT)) {
+				m_points[1] = io.MousePos;
+			}
 		}
 	}
 	else {
@@ -179,33 +195,32 @@ void Game::update(double dt) {
 		for (auto& mesh : m_meshes) {
 			mesh->updateCameraCB((ConstantBuffer*)(m_persCamera->getConstantBuffer())); // Update camera constant buffer for rasterisation		
 		}
+
+
+		if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
+			DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
+			DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+
+			/* 
+			*
+			*		EXAMPLE OF HOW TO USE COMMANDS 
+			*
+			*/
+
+
+			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
+
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
+				m_editableMesh->doCommand(rayOrigin, rayDir, cmd1, m_bm.getCurrentArea());
+			});
+			
+			/* 
+			*
+			*		END OF EXAMPLE OF HOW TO USE COMMANDS 
+			*
+			*/
+		}
 	}
-
-
-	if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
-		DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
-		DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
-
-		/* 
-		*
-		*		EXAMPLE OF HOW TO USE COMMANDS 
-		*
-		*/
-
-
-		EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
-
-		m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
-			m_editableMesh->doCommand(rayOrigin, rayDir, cmd1);
-		});
-		
-		/* 
-		*
-		*		END OF EXAMPLE OF HOW TO USE COMMANDS 
-		*
-		*/
-	}
-
 }
 
 void Game::fixedUpdate(double dt) {
@@ -217,13 +232,10 @@ void Game::render(double dt) {
 	// Submit rasterization meshes
 	for (auto& mesh : m_meshes)
 		getRenderer().submit(mesh);
-
 	// Render frame with gui
 	std::function<void()> imgui = std::bind(&Game::imguiFunc, this);
 	m_dxRenderer->frame(imgui);
-
 	getRenderer().present();
-
 }
 
 void Game::keybinds() {
@@ -287,13 +299,14 @@ void Game::imguiInit() {
 	m_showingTimelineGraph = true;
 	m_showingBranchHistory = true;
 
-	m_toolWidth = 1;
-	m_toolStrength = 1;
+	m_toolWidth = 10;
+	m_toolStrength = 10;
 
 
 
 
-	m_historyWarning = 30;
+	m_historyWarning = 20;
+	m_historyWarningShow = false;
 	m_toolHelpText = true;
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "1", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
@@ -649,13 +662,37 @@ void Game::imguiTimeline() {
 	if (m_branching) {
 		static char str0[128] = "";
 		ImGui::PushItemWidth(200);
-		ImGui::InputTextWithHint("", "Branch Name", str0, IM_ARRAYSIZE(str0));
+		ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
+		// Make Ok button faded if it isn't name not written
+		int len = strlen(str0);
+		bool areaSelected = m_points[0].y != 0;
+		if (len == 0 || !areaSelected)
+		{
+			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+		}
 		if (ImGui::Button("Ok")) {
-			m_bm.createBranch(str0, nullptr);
+			Area a = calcualteArea();
+			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
+
+			m_bm.createBranch(str0, a, nullptr);
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
+			p1 = { a.maxX, 0.1, a.minZ };
+			p2 = { a.minX, 0.1, a.minZ };
+			p3 = { a.minX, 0.1, a.maxZ };
+			p4 = { a.maxX, 0.1, a.maxZ };
+			m_dxRenderer->executeNextOpenCopyCommand([&] {
+				m_fence2->updateVertexData(p1, p2, p3, p4);
+			});
+			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+		}
+		if (len == 0 || !areaSelected)
+		{
+			ImGui::PopItemFlag();
+			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel")) {
@@ -694,11 +731,14 @@ void Game::imguiTimeline() {
 	ImGui::EndGroup();
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
-	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
+	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 50.f);
 
+	std::string txt = std::to_string(m_bm.getCurrentBranch().getCommands().size());
+	ImGui::Text(txt.c_str());
 
+	ImGui::SameLine();
 	// Scroll area
-	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::BeginChild("##ScrollingRegion", ImVec2(520, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
 	//static int size = m_bm.getCurrentBranch().getCommands().size();
 	//if(size < m_bm.getCurrentBranch().getCommands().size())
 	//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
@@ -760,6 +800,19 @@ void Game::imguiTimeline() {
 	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
 	ImGui::PopStyleVar();
 	ImGui::End();
+
+
+	if (m_historyWarning <= m_bm.getCurrentBranch().getCommands().size() && m_historyWarningShow) {
+		if (ImGui::Begin("warning", &m_historyWarningShow, ImGuiWindowFlags_AlwaysAutoResize)) {
+			std::string txt = "You have over " + std::to_string(m_historyWarning) + " uncommited changes";
+			ImGui::Text(txt.c_str());
+		}
+		ImGui::End();
+	}
+	if (m_historyWarning > m_bm.getCurrentBranch().getCommands().size() && !m_historyWarningShow) {
+		m_historyWarningShow = true;
+	}
+
 }
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
@@ -870,6 +923,8 @@ void Game::imguiGraph() {
 	//ImTriangleContainsPoint(p, p, p, p);
 	ImGui::End();
 	ImGui::PopStyleVar();
+
+
 }
 
 void Game::imguiBranchHistory() {
@@ -1076,4 +1131,65 @@ void Game::imguiCommitWindow() {
 		ImGui::SetItemDefaultFocus();
 		ImGui::EndPopup();
 	}
+}
+
+Area Game::calcualteArea() {
+	Area result;
+	float width = 1700;//m_dxRenderer->getWindow()->getWindowWidth();
+	float height = 537;//m_dxRenderer->getWindow()->getWindowHeight();
+	XMMATRIX invVP = m_aboveCamera->getInvProjMatrix() * m_aboveCamera->getInvViewMatrix();
+	float x = m_points[0].x;
+	x /= width;
+	x *= 2.f;
+	x -= 1.f;
+	float y = m_points[0].y;
+	y -= 123;
+	y /= height;
+	y *= 2.f;
+	y = 1.f - y;
+	//XMVECTOR v = XMVectorSet(x, y, 0.3f, 1.f);
+	//v = XMVector4Transform(v, invVP);
+	//float w = XMVectorGetW(v);
+	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
+	//XMVECTOR dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
+	//XMVECTOR nor = XMVectorSet(0.f, 1.f, 0.f, 0.f);
+	////float denom = XMVectorGetX(XMVector4Dot(nor, dir));
+	//float t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
+	
+	//result.minX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
+	//result.minZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
+
+	result.minX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
+	result.minZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
+
+	x = m_points[1].x;
+	x /= width;
+	x *= 2.f;
+	x -= 1.f;
+	y = m_points[1].y;
+	y -= 123;
+	y /= height;
+	y *= 2.f;
+	y = 1.f - y;
+	//v = XMVectorSet(x, y, 0.3f, 1.f);
+	//v = XMVector4Transform(v, invVP);
+	//w = XMVectorGetW(v);
+	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
+	//dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
+	////denom = XMVectorGetX(XMVector4Dot(nor, dir));
+	//t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
+
+
+	//result.maxX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
+	//result.maxZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
+
+	result.maxX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
+	result.maxZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
+
+	if (result.maxX < result.minX)
+		std::swap(result.maxX, result.minX);
+	if (result.maxZ < result.minZ)
+		std::swap(result.maxZ, result.minZ);
+
+	return result;
 }
