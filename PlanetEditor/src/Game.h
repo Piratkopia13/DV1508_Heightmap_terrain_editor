@@ -70,6 +70,7 @@ private:
 	float m_toolStrength;
 
 	int m_historyWarning;
+	bool m_historyWarningShow;
 	bool m_toolHelpText;
 
 

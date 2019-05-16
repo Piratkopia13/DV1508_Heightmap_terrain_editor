@@ -298,13 +298,14 @@ void Game::imguiInit() {
 	m_showingTimelineGraph = true;
 	m_showingBranchHistory = true;
 
-	m_toolWidth = 1;
-	m_toolStrength = 1;
+	m_toolWidth = 10;
+	m_toolStrength = 10;
 
 
 
 
-	m_historyWarning = 30;
+	m_historyWarning = 20;
+	m_historyWarningShow = false;
 	m_toolHelpText = true;
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "1", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
@@ -729,11 +730,14 @@ void Game::imguiTimeline() {
 	ImGui::EndGroup();
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
-	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 45.f);
+	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 50.f);
 
+	std::string txt = std::to_string(m_bm.getCurrentBranch().getCommands().size());
+	ImGui::Text(txt.c_str());
 
+	ImGui::SameLine();
 	// Scroll area
-	ImGui::BeginChild("##ScrollingRegion", ImVec2(500, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::BeginChild("##ScrollingRegion", ImVec2(520, 50.f), false, ImGuiWindowFlags_HorizontalScrollbar);
 	//static int size = m_bm.getCurrentBranch().getCommands().size();
 	//if(size < m_bm.getCurrentBranch().getCommands().size())
 	//	ImGui::SetScrollX(ImGui::GetScrollMaxX()+100);
@@ -793,6 +797,19 @@ void Game::imguiTimeline() {
 	//ImGui::Text(ICON_FA_PAINT_BRUSH "  Paint");    // use string literal concatenation
 	ImGui::PopStyleVar();
 	ImGui::End();
+
+
+	if (m_historyWarning <= m_bm.getCurrentBranch().getCommands().size() && m_historyWarningShow) {
+		if (ImGui::Begin("warning", &m_historyWarningShow, ImGuiWindowFlags_AlwaysAutoResize)) {
+			std::string txt = "You have over " + std::to_string(m_historyWarning) + " uncommited changes";
+			ImGui::Text(txt.c_str());
+		}
+		ImGui::End();
+	}
+	if (m_historyWarning > m_bm.getCurrentBranch().getCommands().size() && !m_historyWarningShow) {
+		m_historyWarningShow = true;
+	}
+
 }
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
@@ -903,6 +920,8 @@ void Game::imguiGraph() {
 	//ImTriangleContainsPoint(p, p, p, p);
 	ImGui::End();
 	ImGui::PopStyleVar();
+
+
 }
 
 void Game::imguiBranchHistory() {
