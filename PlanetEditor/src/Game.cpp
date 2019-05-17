@@ -843,83 +843,41 @@ void Game::imguiGraph() {
 
 	// Fill vector with branches
 
-	auto& branches = m_bm.getAllBranches();
-
-	// Branch indices vector
-	std::vector<std::pair<int, bool>> branchIndices;
-	branchIndices.reserve(branches.size());
-	for (int i = 0; i < branches.size(); i++) {
-		branchIndices.emplace_back(std::pair{ i, false });
-	}
-
-	// First commit is master branch
-	//for (auto& branch : branches) {
-		//if (!branch.getParent()) {
-			commits.push_back({ branches[0].getName(), COMMAND, "" });
-			branchIndices.erase(branchIndices.begin());
-			//break;
-		//}
-	//}
-	
-	while (!branchIndices.empty()) {
-		Branch* nextBranch = nullptr;
-		DrawCommit cmt;
-		int branchIndex = -1;
-		int i = 0;
-		std::chrono::system_clock::time_point oldestDate = std::chrono::system_clock::now();
-		std::chrono::system_clock::time_point newestDate = std::chrono::system_clock::from_time_t(0);
-		for (auto& iPair : branchIndices) {
-			int index = iPair.first;
-
-			//for (auto& branch : branches) {
-
-				if (!iPair.second) {
-					// First commit will always be an empty "created branch"
-					auto& branchDate = branches[index].getCommits()[0].date;
-					if (branchDate <= oldestDate) {
-						nextBranch = &branches[index];
-						cmt = { nextBranch->getName(), NEWBRANCH, nextBranch->getParent()->getName() };
-						oldestDate = branchDate;
-						branchIndex = i;
-					}
-					//break;
-				} else {
-					for (int j = 1; j < branches[index].getCommits().size(); j++) {
-						auto& branchDate = branches[index].getCommits()[j].date;
-						if (branchDate >= newestDate) {
-							nextBranch = &branches[index];
-							cmt = { nextBranch->getName(), COMMAND, "" };
-							newestDate = branchDate;
-							branchIndex = i;
-						}
-					}
-
-			//}
-
-			}
-			i++;
+	struct SortableDrawCommit {
+		std::string branchName;
+		std::chrono::system_clock::time_point date;
+		bool newBranch;
+		std::string parentBranchName;
+		SortableDrawCommit(const std::string& branchName, std::chrono::system_clock::time_point& date, bool newBranch, const std::string& parentBranchName) 
+		: branchName(branchName)
+		 , date(date)
+		 , newBranch(newBranch)
+		 , parentBranchName(parentBranchName)
+		{	}
+	};
+	std::vector<SortableDrawCommit> firstAndLast;
+	for (auto& branch : m_bm.getAllBranches()) {
+		auto& commits = branch.getCommits();
+		{
+			std::string parentName = (branch.getParent()) ? branch.getParent()->getName() : "";
+			firstAndLast.emplace_back(branch.getName(), commits[0].date, true, parentName);
 		}
-		if (nextBranch) {
-			commits.push_back(cmt);
-			if (cmt.type == COMMAND || branches[branchIndices[branchIndex].first].getCommits().size() <= 1)
-				branchIndices.erase(branchIndices.begin() + branchIndex);
-			else if (cmt.type == NEWBRANCH)
-				branchIndices[branchIndex].second = true;
-
+		if (commits.size() > 1) {
+			firstAndLast.emplace_back(branch.getName(), commits[commits.size() - 1].date, false, "");
 		}
 	}
+	std::sort(firstAndLast.begin(), firstAndLast.end(), [](const SortableDrawCommit& lhs, const SortableDrawCommit& rhs) {
+		return lhs.date < rhs.date;
+	});
 
-	//// Fill with dummy commits to dummy branches
-	//commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	//commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "Master" });
-	//commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	//commits.push_back({ "Moved thing", "Banana", NEWBRANCH, "Master" });
-	//commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	//for (int i = 0; i < 3; i++) {
-	//	commits.push_back({ "Placed tree", "Feature", COMMAND, "" });
-	//}
-	//commits.push_back({ "Placed tree", "Feature", MERGE, "Master" });
-	//commits.push_back({ "Moved thing", "Banana", COMMAND, "" });
+	for (auto& drawCommit : firstAndLast) {
+		if (drawCommit.newBranch && drawCommit.branchName != "Master") {
+			commits.push_back({ drawCommit.parentBranchName, COMMAND, "" });
+			commits.push_back({ drawCommit.branchName, NEWBRANCH, drawCommit.parentBranchName });
+		} else {
+			commits.push_back({ drawCommit.branchName, COMMAND, "" });
+		}
+	}
 
 	static ImVec2 lastGraphSize = ImVec2(40, 40);
 	ImGui::BeginChild("##ScrollingRegion", lastGraphSize, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
