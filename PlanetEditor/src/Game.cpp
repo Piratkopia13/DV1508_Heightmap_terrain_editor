@@ -930,7 +930,7 @@ void Game::imguiGraph() {
 			srand(hasher(commit.branchName));
 			info.color = IM_COL32(rand() % 255 + 10, rand() % 255 + 10, rand() % 255 + 10, 255); // Random bright-ish color
 			if (highlightBranchName == commit.branchName)
-				info.color += IM_COL32(100, 100, 100, 0);
+				info.color = IM_COL32(255, 255, 255, 255);
 			info.lastCommitX = p.x + max(i-1, 0) * distanceBetweenCommits;
 			lastOffset = info.yOffset = lastOffset + distanceBetweenBranches;
 			activeBranches.insert({ commit.branchName, info });
