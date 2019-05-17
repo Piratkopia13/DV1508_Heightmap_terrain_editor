@@ -25,6 +25,16 @@ const int BranchManager::getIndex() {
 	return m_index;
 }
 
+int BranchManager::getIndexOf(const std::string& name) {
+	for (int i = 0; i < m_branches.size(); i++) {
+		if (m_branches[i].getName() == name) {
+			return i;
+			break;
+		}
+	}
+	return -1;
+}
+
 const int BranchManager::getCommandIndex() {
 	return m_commandIndex;
 }

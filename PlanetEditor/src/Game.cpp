@@ -900,6 +900,7 @@ void Game::imguiGraph() {
 	std::map<std::string, BranchDrawInfo> activeBranches;
 	float lastOffset = -distanceBetweenBranches;
 	std::hash<std::string> hasher;
+	static std::string highlightBranchName = "";
 
 	ImVec2 maxCoord = p;
 	bool first = true;
@@ -910,6 +911,8 @@ void Game::imguiGraph() {
 			BranchDrawInfo info;
 			srand(hasher(commit.branchName));
 			info.color = IM_COL32(rand() % 255 + 10, rand() % 255 + 10, rand() % 255 + 10, 255); // Random bright-ish color
+			if (highlightBranchName == commit.branchName)
+				info.color += IM_COL32(100, 100, 100, 0);
 			info.lastCommitX = p.x + max(i-1, 0) * distanceBetweenCommits;
 			lastOffset = info.yOffset = lastOffset + distanceBetweenBranches;
 			activeBranches.insert({ commit.branchName, info });
@@ -938,7 +941,7 @@ void Game::imguiGraph() {
 				drawlist->AddLine(ImVec2(otherBranch.lastCommitX, y), ImVec2(x, y), otherBranch.color, 3.0f);
 				circleColor = otherBranch.color;
 			}
-			drawlist->AddLine(ImVec2(lastX, lastY), ImVec2(x, y), info.color, 3.0f);
+			drawlist->AddLine(ImVec2(lastX, lastY), ImVec2(x, y), info.color, (m_bm.getCurrentBranch().getName() == commit.branchName) ? 6.0f : 3.0f);
 			info.lastCommitX = x;
 		}
 		drawlist->AddCircleFilled(ImVec2(x, y), commitRadius, circleColor);
@@ -947,6 +950,30 @@ void Game::imguiGraph() {
 
 		first = false;
 	}
+
+	bool hovering = false;
+	for (auto const& [branchName, drawInfo] : activeBranches) {
+		if (ImGui::IsMouseHoveringRect(ImVec2(p.x + 0.f, p.y + drawInfo.yOffset - 6.f), ImVec2(p.x + drawInfo.lastCommitX, p.y + drawInfo.yOffset + 6.f))) {
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 10.f));
+			ImGui::BeginTooltip();
+			if (m_bm.getCurrentBranch().getName() == branchName)
+				ImGui::Text((std::string("Current branch ") + branchName).c_str());
+			else
+				ImGui::Text((std::string("Switch to branch ") + branchName).c_str());
+			ImGui::EndTooltip();
+			ImGui::PopStyleVar();
+			highlightBranchName = branchName;
+			hovering = true;
+			
+			if (ImGui::IsMouseClicked(0)) {
+				m_bm.setBranch(m_bm.getIndexOf(branchName));
+			}
+
+		}
+	}
+	if (!hovering)
+		highlightBranchName = "";
+
 	//ImGui::SetWindowSize(ImVec2(maxCoord.x - p.x, maxCoord.y - p.y));
 	lastGraphSize = ImVec2(maxCoord.x - p.x + 40.f, maxCoord.y - p.y + 40.f);
 	ImGui::EndChild();

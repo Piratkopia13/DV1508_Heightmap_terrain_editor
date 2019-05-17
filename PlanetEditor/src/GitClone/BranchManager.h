@@ -25,6 +25,7 @@ public:
 	std::vector<const char*> getBranchNames();
 
 	const int getIndex();
+	int getIndexOf(const std::string& name);
 	const int getCommandIndex();
 	Branch& getCurrentBranch();
 	std::vector<Branch>& getAllBranches();
