@@ -10,13 +10,14 @@ Branch::Branch(std::string name, Area area, Branch* parent) {
 	m_name = name;
 	m_area = area;
 	m_parent = parent;
+	m_commits.reserve(100);
 }
 
-const std::string& Branch::getName() {
+const std::string& Branch::getName() const {
 	return m_name;
 }
 
-const Branch* Branch::getParent() {
+const Branch* Branch::getParent() const {
 	return m_parent;
 }
 
