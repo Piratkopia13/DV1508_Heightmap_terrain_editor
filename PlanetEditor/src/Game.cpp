@@ -1286,3 +1286,11 @@ Area Game::calcualteArea() {
 
 	return result;
 }
+
+void Game::onCommitIndexChanged() {
+	throw(std::logic_error("This function has not been implemented yet."));
+}
+
+void Game::onBranchIndexChanged() {
+	throw(std::logic_error("This function has not been implemented yet."));
+}

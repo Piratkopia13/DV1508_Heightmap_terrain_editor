@@ -52,6 +52,9 @@ private:
 private:
 	Area calcualteArea();
 
+	void onCommitIndexChanged();
+	void onBranchIndexChanged();
+
 private:
 	bool m_showingNewFile;
 	bool m_showingOpenFile;
