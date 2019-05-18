@@ -17,6 +17,7 @@ public:
 	virtual void unbind() override;
 	virtual size_t getSize() override;
 
+	void updateData(const void* data, size_t size);
 	size_t getNumIndices();
 	ID3D12Resource1* getBuffer() const;
 	void releaseBufferedObjects();

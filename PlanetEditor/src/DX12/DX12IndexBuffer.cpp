@@ -61,6 +61,24 @@ size_t DX12IndexBuffer::getSize() {
 	return m_byteSize;
 }
 
+void DX12IndexBuffer::updateData(const void* data, size_t size) {
+	//D3DUtils::setResourceTransitionBarrier(cmdList, m_vertexBuffer.Get(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_COPY_DEST);
+	auto cmdList = m_renderer->getCopyList();
+
+	auto& uploadBuffer = m_uploadBuffers.at(0);
+	UINT offset = 0;
+
+	// Prepare the data to be uploaded to the GPU
+	BYTE* pData;
+	ThrowIfFailed(uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&pData)));
+	memcpy(pData, data, size);
+	uploadBuffer->Unmap(0, nullptr);
+
+	// Copy the data from the uploadBuffer to the defaultBuffer
+	cmdList->CopyBufferRegion(m_indexBuffer.Get(), offset, uploadBuffer, 0, size);
+	//D3DUtils::setResourceTransitionBarrier(cmdList, m_vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ);
+}
+
 size_t DX12IndexBuffer::getNumIndices() {
 	return m_byteSize / sizeof(unsigned int);
 }

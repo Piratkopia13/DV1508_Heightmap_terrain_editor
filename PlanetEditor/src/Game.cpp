@@ -1083,7 +1083,9 @@ void Game::imguiCommitWindow() {
 		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
 		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
 			if (m_currentCommitIndex == m_bm.getCurrentBranch().getCommits().size() - 1 || m_bm.getCurrentBranch().getCommits().size() == 0) {
-				EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+				//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+				EditableMesh* mesh = new EditableMesh(*m_editableMesh);
+				mesh->updateData();
 				m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
 				char bufMsg[128] = "Commit message";
 				strncpy_s(buf, bufMsg, 128);
@@ -1113,7 +1115,10 @@ void Game::imguiCommitWindow() {
 			auto commits = m_bm.getCurrentBranch().getCommits();
 			// TODO: Can probably be done in a better way.
 			m_bm.getCurrentBranch().clearCommitsToIndex(m_currentCommitIndex);
-			EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+			//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+			// TODO: EditableMesh gets deleted due to vector size increment - why?
+			EditableMesh* mesh = new EditableMesh(*m_editableMesh);
+			mesh->updateData();
 			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
 			char bufMsg[128] = "Commit message";
 			strncpy_s(buf, bufMsg, 128);

@@ -17,33 +17,32 @@ public:
 		std::string author;
 		std::string message;
 		std::chrono::system_clock::time_point date;
-		EditableMesh* mesh;
+		std::shared_ptr<EditableMesh> mesh;
 
 		Commit(const std::string& author, const std::string& message, EditableMesh* mesh) {
 			this->author = author;
 			this->message = message;
 			this->date = std::chrono::system_clock::now();
-			this->mesh = mesh;
+			this->mesh = std::shared_ptr<EditableMesh>(mesh);
 		}
 
 		Commit(const Commit& other) {
 			this->author = other.author;
 			this->message = other.message;
 			this->date = other.date;
-			this->mesh = new EditableMesh(*other.mesh);
+			this->mesh = std::shared_ptr<EditableMesh>(new EditableMesh(*other.mesh));
 		}
 
 		Commit& operator=(const Commit& other) {
 			this->author = other.author;
 			this->message = other.message;
 			this->date = other.date;
-			this->mesh = new EditableMesh(*other.mesh);
+			this->mesh = std::shared_ptr<EditableMesh>(new EditableMesh(*other.mesh));
 
 			return *this;
 		}
 
 		~Commit() {
-			delete mesh;
 		}
 	};
 

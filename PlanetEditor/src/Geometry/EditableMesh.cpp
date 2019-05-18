@@ -3,6 +3,7 @@
 #include "../DX12/DX12Mesh.h"
 #include "../DX12/DX12Renderer.h"
 #include "../DX12/DX12VertexBuffer.h"
+#include "../DX12/DX12IndexBuffer.h"
 #include "../../assets/shaders/CommonRT.hlsl"
 #include "../GitClone/Branch.h"
 
@@ -64,6 +65,7 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, si
 
 	m_vertexBuffer->setData(vertices, numVertices * sizeof(Vertex), 0);
 	m_indexBuffer->setData(indices, numIndices * sizeof(unsigned int), 0);
+	m_numIndices = numIndices;
 }
 
 EditableMesh::EditableMesh(const EditableMesh & other) {
@@ -88,8 +90,7 @@ EditableMesh::EditableMesh(const EditableMesh & other) {
 	m_vertLengthX = other.m_vertLengthX;
 	m_vertLengthY = other.m_vertLengthY;
 
-	m_vertexBuffer->setData(vertices, numVertices * sizeof(Vertex), 0);
-	m_indexBuffer->setData(indices, numIndices * sizeof(unsigned int), 0);
+	m_numIndices = numIndices;
 }
 
 
@@ -106,7 +107,7 @@ EditableMesh EditableMesh::operator=(const EditableMesh & other) {
 	int numVertices = m_numVertsX * m_numVertsY;
 	std::memcpy(vertices, other.vertices, numVertices * sizeof(Vertex));
 
-	m_vertexBuffer->setData(vertices, numVertices * sizeof(Vertex), 0);
+	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, numVertices * sizeof(Vertex));
 
 	return *this;
 }
@@ -236,6 +237,15 @@ void EditableMesh::setVertexData(Vertex* _vertices) {
 	size_t dataSize = m_numVertsX * m_numVertsY * sizeof(Vertex);
 	std::memcpy(vertices, _vertices, dataSize);
 	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, dataSize);
+}
+
+void EditableMesh::updateData() {
+	m_renderer->executeNextOpenPreCommand([&]() {
+		/*((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, numVertices * sizeof(Vertex));
+		((DX12IndexBuffer*)m_indexBuffer.get())->updateData(indices, numIndices * sizeof(unsigned int));*/
+		m_vertexBuffer->setData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex), 0);
+		m_indexBuffer->setData(indices, m_numIndices * sizeof(unsigned int), 0);
+	});
 }
 
 Vertex * EditableMesh::getVertices() {

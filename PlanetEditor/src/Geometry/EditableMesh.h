@@ -35,6 +35,7 @@ public:
 	bool rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint);
 
 	void setVertexData(Vertex* vertices);
+	void updateData();
 	Vertex* getVertices();
 
 
@@ -54,5 +55,6 @@ private:
 	float m_vertLengthY;
 	size_t m_numVertsX;
 	size_t m_numVertsY;
+	size_t m_numIndices;
 };
 
