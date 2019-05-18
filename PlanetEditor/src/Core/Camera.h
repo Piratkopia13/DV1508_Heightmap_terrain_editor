@@ -54,6 +54,8 @@ public:
 	void updateConstantBuffer();
 	DX12ConstantBuffer* getConstantBuffer() const;
 
+	const DirectX::XMVECTOR screenPointToRay(DirectX::XMVECTOR& pos);
+
 
 private:
 	DirectX::XMMATRIX m_viewMatrix;

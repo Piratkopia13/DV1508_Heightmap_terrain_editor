@@ -152,6 +152,13 @@ void Game::init() {
 	m_aboveCamera->updateConstantBuffer();
 	static_cast<DX12Renderer*>(&getRenderer())->useCamera(m_persCamera.get());
 	m_persCamera->updateConstantBuffer();
+
+
+	// Initial branches
+	EditableMesh* meshCpy = new EditableMesh(*m_editableMesh.get());
+	m_bm.createBranch("Master", { 0, 200, 0, 200 }, nullptr, meshCpy);
+	/*m_bm.createBranch("potato", { 0, 200, 0, 200 }, &m_bm.getCurrentBranch(), meshCpy);
+	m_bm.createBranch("test", { 0, 200, 0, 200 }, & m_bm.getCurrentBranch(), meshCpy);*/
 }
 
 void Game::update(double dt) {
@@ -199,7 +206,16 @@ void Game::update(double dt) {
 
 		if (Input::IsMouseButtonPressed(Input::MouseButton::LEFT)) {
 			DirectX::XMVECTOR rayOrigin = DirectX::XMLoadFloat3(&m_persCamera->getPositionF3());
-			DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+			//DirectX::XMVECTOR rayDir = m_persCamera->getDirectionVec();
+			POINT p;
+			GetCursorPos(&p);
+			ScreenToClient(*reinterpret_cast<DX12Renderer*>(&getRenderer())->getWindow()->getHwnd(), &p);
+
+			XMVECTOR scenePos = DirectX::XMVectorSet(
+				(2.0f * (p.x - m_sceneWindow.minX) / m_sceneWindow.maxX) - 1.0f,
+				((2.0f * (p.y - m_sceneWindow.minZ) / m_sceneWindow.maxZ) - 1.0f)*-1.0f, -1.0f, 0.0f);
+			DirectX::XMVECTOR rayDirMouse = m_persCamera->screenPointToRay(scenePos);
+
 
 			/* 
 			*
@@ -210,8 +226,8 @@ void Game::update(double dt) {
 
 			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDir, cmd1] {
-				m_editableMesh->doCommand(rayOrigin, rayDir, cmd1, m_bm.getCurrentArea());
+			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
+				m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
 			});
 			
 			/* 
@@ -302,7 +318,7 @@ void Game::imguiInit() {
 	m_toolWidth = 10;
 	m_toolStrength = 10;
 
-
+	m_sceneWindow = { 0,0,1,1 };
 
 
 	m_historyWarning = 20;
@@ -419,10 +435,19 @@ void Game::imguiFunc() {
 
 	if (m_dxRenderer->isRenderingToTexture())
 		ImGui::Image((ImTextureID)m_dxRenderer->getRenderedTextureGPUHandle().ptr, size);
+
+	m_sceneWindow.minX = ImGui::GetWindowPos().x;
+	m_sceneWindow.minZ = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y;
+	m_sceneWindow.maxX = ImGui::GetWindowContentRegionMax().x;
+	m_sceneWindow.maxZ = ImGui::GetWindowContentRegionMax().y;
 	// Resize render output to window size
 	if (lastSize.x != size.x || lastSize.y != size.y) {
 		// Ignore imgui bug size
 		if (size.y > 0) {
+			
+
+			//std::cout << m_sceneWindow.print() << std::endl;
+
 			m_persCamera->setAspectRatio(size.x / size.y);
 			m_dxRenderer->executeNextPreFrameCommand([&]() {
 				m_dxRenderer->resizeRenderTexture(size.x, size.y);
@@ -676,7 +701,7 @@ void Game::imguiTimeline() {
 			Area a = calcualteArea();
 			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-			m_bm.createBranch(str0, a, nullptr);
+			m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), m_editableMesh.get());
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
@@ -826,26 +851,51 @@ void Game::imguiGraph() {
 	enum CommitType {
 		COMMAND, MERGE, NEWBRANCH
 	};
-	struct DummyCommit {
+	struct DrawCommit {
 		//Command cmd;
-		std::string msg;
-		std::string branch;
+		std::string branchName;
 		CommitType type;
 		std::string otherBranch;
 	};
-	std::vector<DummyCommit> commits;
+	std::vector<DrawCommit> commits;
 
-	// Fill with dummy commits to dummy branches
-	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	commits.push_back({ "Placed tree", "Feature", NEWBRANCH, "Master" });
-	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	commits.push_back({ "Moved thing", "Banana", NEWBRANCH, "Master" });
-	commits.push_back({ "Moved thing", "Master", COMMAND, "" });
-	for (int i = 0; i < 3; i++) {
-		commits.push_back({ "Placed tree", "Feature", COMMAND, "" });
+	// Fill vector with branches
+
+	struct SortableDrawCommit {
+		std::string branchName;
+		std::chrono::system_clock::time_point date;
+		bool newBranch;
+		std::string parentBranchName;
+		SortableDrawCommit(const std::string& branchName, std::chrono::system_clock::time_point& date, bool newBranch, const std::string& parentBranchName) 
+		: branchName(branchName)
+		 , date(date)
+		 , newBranch(newBranch)
+		 , parentBranchName(parentBranchName)
+		{	}
+	};
+	std::vector<SortableDrawCommit> firstAndLast;
+	for (auto& branch : m_bm.getAllBranches()) {
+		auto& commits = branch.getCommits();
+		{
+			std::string parentName = (branch.getParent()) ? branch.getParent()->getName() : "";
+			firstAndLast.emplace_back(branch.getName(), commits[0].date, true, parentName);
+		}
+		if (commits.size() > 1) {
+			firstAndLast.emplace_back(branch.getName(), commits[commits.size() - 1].date, false, "");
+		}
 	}
-	commits.push_back({ "Placed tree", "Feature", MERGE, "Master" });
-	commits.push_back({ "Moved thing", "Banana", COMMAND, "" });
+	std::sort(firstAndLast.begin(), firstAndLast.end(), [](const SortableDrawCommit& lhs, const SortableDrawCommit& rhs) {
+		return lhs.date < rhs.date;
+	});
+
+	for (auto& drawCommit : firstAndLast) {
+		if (drawCommit.newBranch && drawCommit.branchName != "Master") {
+			commits.push_back({ drawCommit.parentBranchName, COMMAND, "" });
+			commits.push_back({ drawCommit.branchName, NEWBRANCH, drawCommit.parentBranchName });
+		} else {
+			commits.push_back({ drawCommit.branchName, COMMAND, "" });
+		}
+	}
 
 	static ImVec2 lastGraphSize = ImVec2(40, 40);
 	ImGui::BeginChild("##ScrollingRegion", lastGraphSize, false, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
@@ -868,21 +918,24 @@ void Game::imguiGraph() {
 	std::map<std::string, BranchDrawInfo> activeBranches;
 	float lastOffset = -distanceBetweenBranches;
 	std::hash<std::string> hasher;
+	static std::string highlightBranchName = "";
 
 	ImVec2 maxCoord = p;
 	bool first = true;
 	for (int i = 0; i < commits.size(); i++) {
 		auto commit = commits[i];
-		if (activeBranches.find(commit.branch) == activeBranches.end()) {
+		if (activeBranches.find(commit.branchName) == activeBranches.end()) {
 			// commit on branch not known before
 			BranchDrawInfo info;
-			srand(hasher(commit.branch));
+			srand(hasher(commit.branchName));
 			info.color = IM_COL32(rand() % 255 + 10, rand() % 255 + 10, rand() % 255 + 10, 255); // Random bright-ish color
+			if (highlightBranchName == commit.branchName)
+				info.color = IM_COL32(255, 255, 255, 255);
 			info.lastCommitX = p.x + max(i-1, 0) * distanceBetweenCommits;
 			lastOffset = info.yOffset = lastOffset + distanceBetweenBranches;
-			activeBranches.insert({ commit.branch, info });
+			activeBranches.insert({ commit.branchName, info });
 		}
-		BranchDrawInfo& info = activeBranches[commit.branch];
+		BranchDrawInfo& info = activeBranches[commit.branchName];
 
 		float x = p.x + i * distanceBetweenCommits;
 		float y = p.y + info.yOffset;
@@ -906,7 +959,7 @@ void Game::imguiGraph() {
 				drawlist->AddLine(ImVec2(otherBranch.lastCommitX, y), ImVec2(x, y), otherBranch.color, 3.0f);
 				circleColor = otherBranch.color;
 			}
-			drawlist->AddLine(ImVec2(lastX, lastY), ImVec2(x, y), info.color, 3.0f);
+			drawlist->AddLine(ImVec2(lastX, lastY), ImVec2(x, y), info.color, (m_bm.getCurrentBranch().getName() == commit.branchName) ? 6.0f : 3.0f);
 			info.lastCommitX = x;
 		}
 		drawlist->AddCircleFilled(ImVec2(x, y), commitRadius, circleColor);
@@ -915,6 +968,30 @@ void Game::imguiGraph() {
 
 		first = false;
 	}
+
+	bool hovering = false;
+	for (auto const& [branchName, drawInfo] : activeBranches) {
+		if (ImGui::IsMouseHoveringRect(ImVec2(p.x + 0.f, p.y + drawInfo.yOffset - 6.f), ImVec2(p.x + drawInfo.lastCommitX, p.y + drawInfo.yOffset + 6.f))) {
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 10.f));
+			ImGui::BeginTooltip();
+			if (m_bm.getCurrentBranch().getName() == branchName)
+				ImGui::Text((std::string("Current branch ") + branchName).c_str());
+			else
+				ImGui::Text((std::string("Switch to branch ") + branchName).c_str());
+			ImGui::EndTooltip();
+			ImGui::PopStyleVar();
+			highlightBranchName = branchName;
+			hovering = true;
+			
+			if (ImGui::IsMouseClicked(0)) {
+				m_bm.setBranch(m_bm.getIndexOf(branchName));
+			}
+
+		}
+	}
+	if (!hovering)
+		highlightBranchName = "";
+
 	//ImGui::SetWindowSize(ImVec2(maxCoord.x - p.x, maxCoord.y - p.y));
 	lastGraphSize = ImVec2(maxCoord.x - p.x + 40.f, maxCoord.y - p.y + 40.f);
 	ImGui::EndChild();

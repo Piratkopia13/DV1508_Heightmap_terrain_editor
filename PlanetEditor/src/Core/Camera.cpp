@@ -200,3 +200,13 @@ void Camera::updateConstantBuffer() {
 DX12ConstantBuffer* Camera::getConstantBuffer() const {
 	return m_constantBuffer;
 }
+
+const DirectX::XMVECTOR Camera::screenPointToRay(DirectX::XMVECTOR& pos) {
+	XMVECTOR temp = pos;
+	temp = DirectX::XMVector4Transform(temp, getInvProjMatrix());
+	temp = XMVectorSetZ(temp, 1.0f);
+	temp = XMVectorSetW(temp, 0.0f);
+	temp = DirectX::XMVector4Transform(temp, getInvViewMatrix());
+	temp = XMVector3Normalize(temp);
+	return temp;
+}
