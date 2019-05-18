@@ -680,11 +680,7 @@ void Game::imguiTimeline() {
 
 	int index = m_bm.getIndex();
 	if (ImGui::Combo("##hidelabel", &index, m_bm.getBranchNames().data(), m_bm.getSize())) {
-		m_bm.setBranch(index);
-		// TODO: Fix so that branch, commits and mesh is correctly changed
-		m_dxRenderer->executeNextOpenCopyCommand([&] {
-			m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
-		});
+		jumpToBranchIndex(index);
 	}
 
 	ImGui::SameLine();
@@ -989,11 +985,7 @@ void Game::imguiGraph() {
 			hovering = true;
 			
 			if (ImGui::IsMouseClicked(0)) {
-				m_bm.setBranch(m_bm.getIndexOf(branchName));
-				// TODO: Fix so that branch, commits and mesh is correctly changed
-				m_dxRenderer->executeNextOpenCopyCommand([&] {
-					m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
-				});
+				jumpToBranchIndex(m_bm.getIndexOf(branchName));
 			}
 
 		}
@@ -1052,10 +1044,7 @@ void Game::imguiBranchHistory() {
 					openPopup = true;
 				}
 				else {
-					m_currentCommitIndex = m_jumpToCommitIndex;
-					m_dxRenderer->executeNextOpenCopyCommand([&] {
-						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
-					});
+					jumpToCommitIndex(m_jumpToCommitIndex);
 				}
 				ImGui::CloseCurrentPopup();
 			}
@@ -1073,11 +1062,7 @@ void Game::imguiBranchHistory() {
 				ImGui::Text("Are you sure you want to jump to this commit? All uncommitted progress will be lost.");
 
 				if (ImGui::Button("Go to commit", ImVec2(120, 0))) {
-					m_bm.getCurrentBranch().resetCommandList();
-					m_dxRenderer->executeNextOpenCopyCommand([&] {
-						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
-					});
-					m_currentCommitIndex = m_jumpToCommitIndex;
+					jumpToCommitIndex(m_jumpToCommitIndex);
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::SameLine();
@@ -1198,7 +1183,6 @@ void Game::imguiCommitWindow() {
 		// Commit on this branch and overwrite the history after the current commit's index
 		if (ImGui::Button("Commit on this branch", ImVec2(120, 0))) {
 			m_bm.getCurrentBranch().resetCommandList();
-			auto commits = m_bm.getCurrentBranch().getCommits();
 			// TODO: Can probably be done in a better way.
 			m_bm.getCurrentBranch().clearCommitsToIndex(m_currentCommitIndex);
 			//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
@@ -1208,7 +1192,7 @@ void Game::imguiCommitWindow() {
 			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
 			char bufMsg[128] = "Commit message";
 			strncpy_s(buf, bufMsg, 128);
-			m_currentCommitIndex = commits.size() - 1;
+			m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine(); 
@@ -1287,10 +1271,18 @@ Area Game::calcualteArea() {
 	return result;
 }
 
-void Game::onCommitIndexChanged() {
-	throw(std::logic_error("This function has not been implemented yet."));
+void Game::jumpToCommitIndex(unsigned int index) {
+	m_bm.getCurrentBranch().resetCommandList();
+	m_dxRenderer->executeNextOpenCopyCommand([&] {
+		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[index].mesh->getVertices());
+	});
+	m_currentCommitIndex = index;
 }
 
-void Game::onBranchIndexChanged() {
-	throw(std::logic_error("This function has not been implemented yet."));
+void Game::jumpToBranchIndex(unsigned int index) {
+	m_bm.setBranch(index);
+	m_dxRenderer->executeNextOpenCopyCommand([&] {
+		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
+	});
+	m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
 }
