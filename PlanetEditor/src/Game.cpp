@@ -679,8 +679,13 @@ void Game::imguiTimeline() {
 	ImGui::SameLine();
 
 	int index = m_bm.getIndex();
-	ImGui::Combo("##hidelabel", &index, m_bm.getBranchNames().data(), m_bm.getSize());
-	m_bm.setBranch(index);
+	if (ImGui::Combo("##hidelabel", &index, m_bm.getBranchNames().data(), m_bm.getSize())) {
+		m_bm.setBranch(index);
+		// TODO: Fix so that branch, commits and mesh is correctly changed
+		m_dxRenderer->executeNextOpenCopyCommand([&] {
+			m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
+		});
+	}
 
 	ImGui::SameLine();
 	ImGui::BeginGroup();
@@ -701,7 +706,7 @@ void Game::imguiTimeline() {
 			Area a = calcualteArea();
 			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-			m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), m_editableMesh.get());
+			m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
@@ -985,6 +990,10 @@ void Game::imguiGraph() {
 			
 			if (ImGui::IsMouseClicked(0)) {
 				m_bm.setBranch(m_bm.getIndexOf(branchName));
+				// TODO: Fix so that branch, commits and mesh is correctly changed
+				m_dxRenderer->executeNextOpenCopyCommand([&] {
+					m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
+				});
 			}
 
 		}
