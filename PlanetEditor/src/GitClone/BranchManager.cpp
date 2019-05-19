@@ -58,6 +58,7 @@ const bool BranchManager::canMerge() {
 const bool BranchManager::createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh) {
 	m_branches.emplace_back(name, area, parent);
 	m_branches[m_branches.size() - 1].createCommit("Branch", "Branch created", initalMesh);
+	m_index = m_branches.size() - 1;
 	return true;
 }
 
