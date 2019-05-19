@@ -749,10 +749,22 @@ void Game::imguiTimeline() {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Commit")) {
-			ImGui::OpenPopup("Commit##Window");
+			if (m_bm.getCurrentBranch().getParent() != nullptr)
+				ImGui::OpenPopup("Commit##Window");
+			else {
+				ImGui::OpenPopup("Master Branch##Popup");
+			}
 		}
 
 		imguiCommitWindow();
+
+		if (ImGui::BeginPopupModal("Master Branch##Popup", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+			// TODO: Change so this opens a menu to commit to a new branch instead?
+			ImGui::Text("You can not commit to the master branch. Please create a new branch or jump to an existing one.");
+			if (ImGui::Button("Close"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
 	}
 	ImGui::EndGroup();
 	// Add spacing to right align command buttons
@@ -840,6 +852,7 @@ void Game::imguiTimeline() {
 	}
 
 }
+
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 	if (!ImGui::Begin("Graph", &m_showingTimelineGraph, ImGuiWindowFlags_HorizontalScrollbar)) {
