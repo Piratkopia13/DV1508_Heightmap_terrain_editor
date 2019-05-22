@@ -395,7 +395,7 @@ void Game::imguiInit() {
 			positions.emplace_back(vertex.first, XMFLOAT3(0, delta, 0));
 		}
 
-		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "4", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
@@ -407,7 +407,7 @@ void Game::imguiInit() {
 			positions.emplace_back(vertex.first, XMFLOAT3(0, delta, 0));
 		}
 
-		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
 	m_currentTool = &m_tools[0];
