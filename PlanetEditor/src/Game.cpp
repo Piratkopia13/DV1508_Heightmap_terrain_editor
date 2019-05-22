@@ -280,14 +280,14 @@ void Game::keybinds() {
 	}
 
 	if (Input::IsKeyPressed('Z')) {
-		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undo();
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().undo();
 		if(changes.size() > 0)
 			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 				m_editableMesh->doChanges(changes);
 				});
 	}
 	if (Input::IsKeyPressed('Y')) {
-		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redo();
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redo();
 		if (changes.size() > 0)
 			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 			m_editableMesh->doChanges(changes);
@@ -339,7 +339,7 @@ void Game::imguiInit() {
 			positions.emplace_back(vertex.first, XMFLOAT3(0, delta,0));
 		}
 
-		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_ROLLER, "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
@@ -357,7 +357,7 @@ void Game::imguiInit() {
 			vertices[vertex.first].position.y = height;
 		}
 
-		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
 	
@@ -732,6 +732,7 @@ void Game::imguiTimeline() {
 				Area a = calcualteArea();
 				std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
+			if (m_bm.validArea(a)) {
 				m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
 				m_branching = false;
 				m_points[0] = ImVec2(0, 0);
@@ -742,10 +743,13 @@ void Game::imguiTimeline() {
 				p4 = { a.maxX, 0.1, a.maxZ };
 				m_dxRenderer->executeNextOpenCopyCommand([&] {
 					m_fence2->updateVertexData(p1, p2, p3, p4);
-					});
-				std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
-				str0[0] = '\0';
+				});
 			}
+			else {
+				std::cout << "Invalid area" << std::endl;
+			}
+			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+			str0[0] = '\0';
 		}
 		if (len == 0 || !areaSelected)
 		{
@@ -815,23 +819,23 @@ void Game::imguiTimeline() {
 	for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
 		if (i != m_bm.getCurrentBranch().getCommands().size() - 1)
 			ImGui::SameLine();
-		bool currentCommand = m_bm.isCurrentCommand(i);
+		bool currentCommand = m_bm.getCurrentBranch().isCurrentCommand(i);
 		if (currentCommand) {
 			ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
 		}
 
 		if (ImGui::Button(
 			(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
-			if (m_bm.getCommandIndex() > i) {
-				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
+			if (m_bm.getCurrentBranch().getCommandIndex() > i) {
+				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().undoTo(i);
 				if (changes.size() > 0) {
 					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 						m_editableMesh->doChanges(changes);
 					});
 				}
 			}
-			else if (m_bm.getCommandIndex() < i) {
-				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
+			else if (m_bm.getCurrentBranch().getCommandIndex() < i) {
+				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redoTo(i);
 				if (changes.size() > 0) {
 					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 						m_editableMesh->doChanges(changes);
