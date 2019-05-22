@@ -264,16 +264,16 @@ void Game::keybinds() {
 
 
 	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
-	if (Input::IsKeyPressed('T')) {
+	if (Input::IsKeyPressed('I')) {
 		renderToTexture = !renderToTexture;
 		m_dxRenderer->renderToTexture(renderToTexture);
 	}
-	if (Input::IsKeyPressed('P')) {
+	if (Input::IsKeyPressed('O')) {
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(300, 300);
 			});
 	}
-	if (Input::IsKeyPressed('O')) {
+	if (Input::IsKeyPressed('P')) {
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(100, 100);
 			});
@@ -294,17 +294,41 @@ void Game::keybinds() {
 				});
 	}
 
+
+#pragma region WINDOWSHOURTCUTS
+	if (Input::IsKeyPressed('H')) {
+		m_showingTimeline = !m_showingTimeline;
+	}
+	if (Input::IsKeyPressed('G')) {
+		m_showingTimelineGraph = !m_showingTimelineGraph;
+	}
+	if (Input::IsKeyPressed('B')) {
+		m_showingBranchHistory = !m_showingBranchHistory;
+	}
+	if (Input::IsKeyPressed('T')) {
+		m_showingToolbar = !m_showingToolbar;
+	}
+	if (Input::IsKeyPressed('R')) {
+		m_showingToolOptions = !m_showingToolOptions;
+	}
+#pragma endregion
+
+
 #pragma region TOOLS
 
 
-
-	if (Input::IsKeyDown('1')) {
-		m_currentTool = &m_tools[0];
+	for (Tool& tool : m_tools) {
+		if (Input::IsKeyDown(tool.info.shortcut[0])) {
+			m_currentTool = &tool;
+		}
 	}
-	if (Input::IsKeyDown('2')) {
-		m_currentTool = &m_tools[1];
-
-	}
+	//if (Input::IsKeyDown('1')) {
+	//	m_currentTool = &m_tools[0];
+	//}
+	//if (Input::IsKeyDown('2')) {
+	//	m_currentTool = &m_tools[1];
+	//
+	//}
 #pragma endregion
 }
 
@@ -330,7 +354,7 @@ void Game::imguiInit() {
 	m_historyWarning = 20;
 	m_historyWarningShow = false;
 	m_toolHelpText = true;
-	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "1", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add height", "1", "this high things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		float delta = 0.0;
 		for each (auto vertex in vectorStuff) {
@@ -342,11 +366,13 @@ void Game::imguiInit() {
 		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
+
 	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_ROLLER, "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		float highestImpact = 0.f;
 		float height = 0.f;
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		for each (auto vertex in vectorStuff) {
+			
 			if (vertex.second > highestImpact) {
 				height = vertices[vertex.first].position.y;
 				highestImpact = vertex.second;
@@ -360,7 +386,30 @@ void Game::imguiInit() {
 		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
-	
+	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "reduce height", "3", "this low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
+		float delta = 0.0;
+		for each (auto vertex in vectorStuff) {
+			delta = -m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			vertices[vertex.first].position.y += delta;
+			positions.emplace_back(vertex.first, XMFLOAT3(0, delta, 0));
+		}
+
+		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
+		});
+	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "4", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
+		float delta = 0.0;
+		for each (auto vertex in vectorStuff) {
+			delta = m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			vertices[vertex.first].position.y += delta;
+			positions.emplace_back(vertex.first, XMFLOAT3(0, delta, 0));
+		}
+
+		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
+		});
 	m_currentTool = &m_tools[0];
 
 }
@@ -529,15 +578,15 @@ void Game::imguiTopBar() {
 		ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("View")) {
-			if (ImGui::MenuItem("History Bar"), "", &m_showingTimeline) {
+			if (ImGui::MenuItem("History Bar", "H", &m_showingTimeline)) {
 			}
-			if (ImGui::MenuItem("Graph"), "", &m_showingTimelineGraph) {
+			if (ImGui::MenuItem("Graph", "G", &m_showingTimelineGraph)) {
 			}
-			if (ImGui::MenuItem("Branch history"), "", &m_showingBranchHistory) {
+			if (ImGui::MenuItem("Branch history", "B", &m_showingBranchHistory)) {
 			}
-			if (ImGui::MenuItem("Tools"), &m_showingToolbar) {
+			if (ImGui::MenuItem("Tools","T", &m_showingToolbar)) {
 			}
-			if (ImGui::MenuItem("Tool Settings"), "", &m_showingToolOptions) {
+			if (ImGui::MenuItem("Tool Settings", "R", &m_showingToolOptions)) {
 			}
 
 		ImGui::EndMenu();
@@ -1111,10 +1160,18 @@ void Game::imguiTools() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
 
 	if (ImGui::Begin("TOOLS", &m_showingToolbar, ImGuiWindowFlags_AlwaysAutoResize)) {
-
+		
 		for (int i = 0; i < m_tools.size(); i++) {
+			bool changed = false;
+			if (&m_tools[i] == m_currentTool) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(43.0f/255.0f, 75.0f/255.0f, 255.0f/255.0f, 1.0f));
+				changed = true;
+			}
 			if (ImGui::Button(m_tools[i].info.icon.c_str())) {
 				m_currentTool = &m_tools[i];
+			}
+			if (changed) {
+				ImGui::PopStyleColor();
 			}
 			if (ImGui::IsItemHovered()) {
 				ImGui::BeginTooltip();
