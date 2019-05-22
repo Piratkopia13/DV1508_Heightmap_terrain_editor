@@ -694,6 +694,8 @@ void Game::imguiTimeline() {
 	ImGui::BeginGroup();
 	if (m_branching) {
 		static char str0[128] = "";
+		if (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+			ImGui::SetKeyboardFocusHere(0);
 		ImGui::PushItemWidth(200);
 		ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0));
 		ImGui::PopItemWidth();
@@ -706,21 +708,33 @@ void Game::imguiTimeline() {
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 		}
 		if (ImGui::Button("Ok")) {
-			Area a = calcualteArea();
-			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-			m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
-			m_branching = false;
-			m_points[0] = ImVec2(0, 0);
-			m_points[1] = m_points[0];
-			p1 = { a.maxX, 0.1, a.minZ };
-			p2 = { a.minX, 0.1, a.minZ };
-			p3 = { a.minX, 0.1, a.maxZ };
-			p4 = { a.maxX, 0.1, a.maxZ };
-			m_dxRenderer->executeNextOpenCopyCommand([&] {
-				m_fence2->updateVertexData(p1, p2, p3, p4);
-			});
-			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+			bool nameExists = false;
+			for (auto& branch : m_bm.getAllBranches()) {
+				if (branch.getName() == str0) {
+					nameExists = true;
+					break;
+				}
+			}
+			if (nameExists) {
+				ImGui::OpenPopup("Error##nameExists");
+			} else {
+				Area a = calcualteArea();
+				std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
+
+				m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
+				m_branching = false;
+				m_points[0] = ImVec2(0, 0);
+				m_points[1] = m_points[0];
+				p1 = { a.maxX, 0.1, a.minZ };
+				p2 = { a.minX, 0.1, a.minZ };
+				p3 = { a.minX, 0.1, a.maxZ };
+				p4 = { a.maxX, 0.1, a.maxZ };
+				m_dxRenderer->executeNextOpenCopyCommand([&] {
+					m_fence2->updateVertexData(p1, p2, p3, p4);
+					});
+				std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+			}
 		}
 		if (len == 0 || !areaSelected)
 		{
@@ -765,6 +779,17 @@ void Game::imguiTimeline() {
 		imguiCommitWindow();
 	}
 	ImGui::EndGroup();
+
+	if (ImGui::BeginPopupModal("Error##nameExists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("A branch with that name already exists!\n\n");
+
+		ImGui::SetItemDefaultFocus();
+		if (ImGui::Button("OK", ImVec2(240, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
+			ImGui::CloseCurrentPopup(); 
+		}
+		ImGui::EndPopup();
+	}
+
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
 	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 50.f);
