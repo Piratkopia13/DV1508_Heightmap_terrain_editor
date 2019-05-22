@@ -1258,17 +1258,6 @@ Area Game::calcualteArea() {
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;
-	//XMVECTOR v = XMVectorSet(x, y, 0.3f, 1.f);
-	//v = XMVector4Transform(v, invVP);
-	//float w = XMVectorGetW(v);
-	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
-	//XMVECTOR dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
-	//XMVECTOR nor = XMVectorSet(0.f, 1.f, 0.f, 0.f);
-	////float denom = XMVectorGetX(XMVector4Dot(nor, dir));
-	//float t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
-	
-	//result.minX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
-	//result.minZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
 
 	result.minX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
 	result.minZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
@@ -1282,17 +1271,6 @@ Area Game::calcualteArea() {
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;
-	//v = XMVectorSet(x, y, 0.3f, 1.f);
-	//v = XMVector4Transform(v, invVP);
-	//w = XMVectorGetW(v);
-	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
-	//dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
-	////denom = XMVectorGetX(XMVector4Dot(nor, dir));
-	//t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
-
-
-	//result.maxX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
-	//result.maxZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
 
 	result.maxX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
 	result.maxZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
@@ -1307,10 +1285,10 @@ Area Game::calcualteArea() {
 
 void Game::jumpToCommitIndex(unsigned int index) {
 	m_bm.getCurrentBranch().resetCommandList();
-	m_dxRenderer->executeNextOpenCopyCommand([&] {
-		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[index].mesh->getVertices());
-	});
 	m_currentCommitIndex = index;
+	m_dxRenderer->executeNextOpenCopyCommand([&] {
+		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_currentCommitIndex].mesh->getVertices());
+	});
 }
 
 void Game::jumpToBranchIndex(unsigned int index) {
