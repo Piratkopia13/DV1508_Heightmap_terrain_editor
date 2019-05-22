@@ -81,6 +81,7 @@ void Game::init() {
 
 	m_material = std::unique_ptr<Material>(getRenderer().makeMaterial("material_0"));
 	m_material->setShader(shaderPath + "VertexShader" + shaderExtension, Material::ShaderType::VS);
+	m_material->setShader(shaderPath + "GeometryShader" + shaderExtension, Material::ShaderType::GS);
 	m_material->setShader(shaderPath + "FragmentShader" + shaderExtension, Material::ShaderType::PS);
 	DX12Material* dxMaterial = ((DX12Material*)m_material.get());
 	std::string err;
@@ -119,7 +120,7 @@ void Game::init() {
 	texFiles2.emplace_back("../assets/textures/refract.png");
 	m_fenceTexArray->loadFromFiles(texFiles2);
 	{
-		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 10, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 10 }, { 10, 0.1, 10}));
+		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 40, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 40 }, { 40, 0.1, 40}));
 		m_fence->getMesh()->technique = m_technique.get();
 		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
 

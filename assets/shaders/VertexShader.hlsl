@@ -11,6 +11,7 @@ struct VSOut {
 	float4 position : SV_POSITION;
 	float3 normal 	: NORMAL0;
 	float2 texCoord : TEXCOORD0;
+	float3 worldPos : WORLDPOS;
 };
 
 cbuffer CB_Transform : register(MERGE(b, CB_REG_TRANSFORM)) {
@@ -24,6 +25,7 @@ cbuffer CB_Camera : register(MERGE(b, CB_REG_CAMERA)) {
 VSOut VSMain(VSIn input) {
 	VSOut output = (VSOut)0;
 	output.position = mul(transform, float4(input.position, 1.0));
+	output.worldPos = output.position;
 	output.position = mul(camera.VP, output.position);
  	output.normal = input.normal;
  	output.texCoord = input.texCoord;
