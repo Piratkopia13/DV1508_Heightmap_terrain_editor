@@ -68,6 +68,19 @@ public:
 	std::vector<Branch::Commit>& getCommits();
 	void resetCommandList();
 
+	const int getCommandIndex();
+
+	std::vector<std::pair<unsigned int, XMFLOAT3>> undo();
+	std::vector<std::pair<unsigned int, XMFLOAT3>> redo();
+	std::vector<std::pair<unsigned int, XMFLOAT3>> undoTo(size_t index);
+	std::vector<std::pair<unsigned int, XMFLOAT3>> redoTo(size_t index);
+	void setCurrentCommand(Command& c);
+	void setCurrentCommand(int index);
+	const bool isCurrentCommand(const Command& c);
+	const bool isCurrentCommand(int index);
+
+
+
 private:
 
 	std::string m_name;
@@ -76,5 +89,7 @@ private:
 	Area m_area;
 
 	std::vector<Commit> m_commits;
+
+	int m_commandIndex;
 };
 

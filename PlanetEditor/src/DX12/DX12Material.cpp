@@ -159,10 +159,11 @@ int DX12Material::compileMaterial(std::string& errString, D3D12_INPUT_ELEMENT_DE
 	// remove all shaders.
 	removeShader(ShaderType::VS);
 	removeShader(ShaderType::PS);
-
+	removeShader(ShaderType::GS);
 	// compile shaders
 	compileShader(ShaderType::VS);
 	compileShader(ShaderType::PS);
+	compileShader(ShaderType::GS);
 
 	////// Input Layout //////
 	if (!inputLayout) {

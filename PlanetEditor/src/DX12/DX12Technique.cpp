@@ -7,6 +7,7 @@ DX12Technique::DX12Technique(DX12Material* m, DX12RenderState* r, DX12Renderer* 
 
 	ID3DBlob* vertexBlob = m->getShaderBlob(Material::ShaderType::VS);
 	ID3DBlob* pixelBlob = m->getShaderBlob(Material::ShaderType::PS);
+	ID3DBlob* geometryBlob = m->getShaderBlob(Material::ShaderType::GS);
 
 	////// Pipline State //////
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC gpsd = {};
@@ -19,7 +20,8 @@ DX12Technique::DX12Technique(DX12Material* m, DX12RenderState* r, DX12Renderer* 
 	gpsd.VS.BytecodeLength = vertexBlob->GetBufferSize();
 	gpsd.PS.pShaderBytecode = reinterpret_cast<void*>(pixelBlob->GetBufferPointer());
 	gpsd.PS.BytecodeLength = pixelBlob->GetBufferSize();
-
+	gpsd.GS.pShaderBytecode = reinterpret_cast<void*>(geometryBlob->GetBufferPointer());
+	gpsd.GS.BytecodeLength = geometryBlob->GetBufferSize();
 	//Specify render target and depthstencil usage.
 	gpsd.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	gpsd.NumRenderTargets = 1;

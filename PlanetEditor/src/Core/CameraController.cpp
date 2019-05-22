@@ -28,6 +28,10 @@ void CameraController::update(float dt) {
 	
 
 	// Camera movement
+	if (ImGui::GetIO().KeyShift) {
+		movementSpeed *= 4;
+	}
+
 	if (Input::IsKeyDown('W'))
 		setCameraPosition(getCameraPosition() + getCameraDirection() * movementSpeed);
 	if (Input::IsKeyDown('S'))
