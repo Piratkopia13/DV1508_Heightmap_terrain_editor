@@ -57,8 +57,8 @@ void Game::init() {
 	std::cout << "Loading fbx models.." << std::endl;
 	imguiInit();
 
-	m_toolWidth = 4.0f;
-	m_toolStrength = 1.0f;
+	m_toolWidth = 10.0f;
+	m_toolStrength = 10.0f;
 
 	float floorHalfWidth = 50.0f;
 	float floorTiling = 5.0f;
@@ -346,8 +346,6 @@ void Game::imguiInit() {
 	m_showingTimelineGraph = true;
 	m_showingBranchHistory = true;
 
-	m_toolWidth = 10;
-	m_toolStrength = 10;
 
 	m_sceneWindow = { 0,0,1,1 };
 
