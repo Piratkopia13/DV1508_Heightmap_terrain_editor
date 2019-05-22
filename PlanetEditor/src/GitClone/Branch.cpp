@@ -58,7 +58,7 @@ std::vector<Branch::Commit>& Branch::getCommits() {
 }
 
 void Branch::resetCommandList() {
-	m_commandIndex = 0;
+	m_commandIndex = -1;
 	m_commands.clear();
 }
 
