@@ -45,15 +45,15 @@ private:
 	void imguiTools();
 	void imguiToolOptions();
 	void imguiCommitWindow();
-	void imguiCommitJumpWindow();
+	void imguiMasterBranchCommandsWarning();
 
 
 
 private:
 	Area calcualteArea();
 
-	void onCommitIndexChanged();
-	void onBranchIndexChanged();
+	void jumpToCommitIndex(unsigned int index);
+	void jumpToBranchIndex(unsigned int index);
 
 private:
 	bool m_showingNewFile;
@@ -67,6 +67,8 @@ private:
 	bool m_showingToolOptions;
 	bool m_showingBranches;
 	bool m_showingBranchHistory;
+
+	bool m_masterBranchCommandWarning;
 
 
 	Area m_sceneWindow;

@@ -227,9 +227,15 @@ void Game::update(double dt) {
 
 			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
-				m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
-			});
+			if (m_bm.getCurrentBranch().getParent() != nullptr) {
+				m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
+					m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
+				});
+			}
+			else {
+				// Display imgui warning popup modal
+				m_masterBranchCommandWarning = true;
+			}
 			
 			/* 
 			*
@@ -259,47 +265,71 @@ void Game::keybinds() {
 
 
 	static bool renderToTexture = m_dxRenderer->isRenderingToTexture();
-	if (Input::IsKeyPressed('T')) {
+	if (Input::IsKeyPressed('I')) {
 		renderToTexture = !renderToTexture;
 		m_dxRenderer->renderToTexture(renderToTexture);
 	}
-	if (Input::IsKeyPressed('P')) {
+	if (Input::IsKeyPressed('O')) {
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(300, 300);
 			});
 	}
-	if (Input::IsKeyPressed('O')) {
+	if (Input::IsKeyPressed('P')) {
 		m_dxRenderer->executeNextPreFrameCommand([&]() {
 			m_dxRenderer->resizeRenderTexture(100, 100);
 			});
 	}
 
 	if (Input::IsKeyPressed('Z')) {
-		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undo();
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().undo();
 		if(changes.size() > 0)
 			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 				m_editableMesh->doChanges(changes);
 				});
 	}
 	if (Input::IsKeyPressed('Y')) {
-		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redo();
+		std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redo();
 		if (changes.size() > 0)
 			m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 			m_editableMesh->doChanges(changes);
 				});
 	}
 
+
+#pragma region WINDOWSHOURTCUTS
+	if (Input::IsKeyPressed('H')) {
+		m_showingTimeline = !m_showingTimeline;
+	}
+	if (Input::IsKeyPressed('G')) {
+		m_showingTimelineGraph = !m_showingTimelineGraph;
+	}
+	if (Input::IsKeyPressed('B')) {
+		m_showingBranchHistory = !m_showingBranchHistory;
+	}
+	if (Input::IsKeyPressed('T')) {
+		m_showingToolbar = !m_showingToolbar;
+	}
+	if (Input::IsKeyPressed('R')) {
+		m_showingToolOptions = !m_showingToolOptions;
+	}
+#pragma endregion
+
+
 #pragma region TOOLS
 
 
-
-	if (Input::IsKeyDown('1')) {
-		m_currentTool = &m_tools[0];
+	for (Tool& tool : m_tools) {
+		if (Input::IsKeyDown(tool.info.shortcut[0])) {
+			m_currentTool = &tool;
+		}
 	}
-	if (Input::IsKeyDown('2')) {
-		m_currentTool = &m_tools[1];
-
-	}
+	//if (Input::IsKeyDown('1')) {
+	//	m_currentTool = &m_tools[0];
+	//}
+	//if (Input::IsKeyDown('2')) {
+	//	m_currentTool = &m_tools[1];
+	//
+	//}
 #pragma endregion
 }
 
@@ -325,7 +355,7 @@ void Game::imguiInit() {
 	m_historyWarning = 20;
 	m_historyWarningShow = false;
 	m_toolHelpText = true;
-	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "1", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_BRUSH) + "##1", "add height", "1", "this high things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		float delta = 0.0;
 		for each (auto vertex in vectorStuff) {
@@ -334,14 +364,16 @@ void Game::imguiInit() {
 			positions.emplace_back(vertex.first, XMFLOAT3(0, delta,0));
 		}
 
-		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
-	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_ROLLER, "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_ROLLER)+"##2", "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		float highestImpact = 0.f;
 		float height = 0.f;
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		for each (auto vertex in vectorStuff) {
+			
 			if (vertex.second > highestImpact) {
 				height = vertices[vertex.first].position.y;
 				highestImpact = vertex.second;
@@ -352,10 +384,33 @@ void Game::imguiInit() {
 			vertices[vertex.first].position.y = height;
 		}
 
-		m_bm.addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
-	
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_BRUSH) + "##3", "reduce height", "3", "this low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
+		float delta = 0.0;
+		for each (auto vertex in vectorStuff) {
+			delta = -m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			vertices[vertex.first].position.y += delta;
+			positions.emplace_back(vertex.first, XMFLOAT3(0, delta, 0));
+		}
+
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
+		});
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_BRUSH) + "##4", "add/reduce height", "4", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
+		float delta = 0.0;
+		for each (auto vertex in vectorStuff) {
+			delta = m_toolStrength * std::sin(1.57079632679f * vertex.second);
+			vertices[vertex.first].position.y += delta;
+			positions.emplace_back(vertex.first, XMFLOAT3(0, delta, 0));
+		}
+
+		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
+
+		});
 	m_currentTool = &m_tools[0];
 
 }
@@ -479,6 +534,7 @@ void Game::imguiFunc() {
 	if (m_showingBranchHistory)
 		imguiBranchHistory();
 
+	imguiMasterBranchCommandsWarning();
 
 	firstFrame = false;
 }
@@ -523,15 +579,15 @@ void Game::imguiTopBar() {
 		ImGui::EndMenu();
 		}
 		if (ImGui::BeginMenu("View")) {
-			if (ImGui::MenuItem("History Bar"), "", &m_showingTimeline) {
+			if (ImGui::MenuItem("History Bar", "H", &m_showingTimeline)) {
 			}
-			if (ImGui::MenuItem("Graph"), "", &m_showingTimelineGraph) {
+			if (ImGui::MenuItem("Graph", "G", &m_showingTimelineGraph)) {
 			}
-			if (ImGui::MenuItem("Branch history"), "", &m_showingBranchHistory) {
+			if (ImGui::MenuItem("Branch history", "B", &m_showingBranchHistory)) {
 			}
-			if (ImGui::MenuItem("Tools"), &m_showingToolbar) {
+			if (ImGui::MenuItem("Tools","T", &m_showingToolbar)) {
 			}
-			if (ImGui::MenuItem("Tool Settings"), "", &m_showingToolOptions) {
+			if (ImGui::MenuItem("Tool Settings", "R", &m_showingToolOptions)) {
 			}
 
 		ImGui::EndMenu();
@@ -668,12 +724,21 @@ void Game::imguiTimeline() {
 	ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvailWidth() - width.x, ImGui::GetCursorPosY()));
 	ImGui::Text(text.c_str());*/
 
+	if (ImGui::BeginPopupModal("Error##nameExists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("A branch with that name already exists!\n\n");
+
+		ImGui::SetItemDefaultFocus();
+		if (ImGui::Button("OK", ImVec2(240, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+	
 	const char* popupOptions[] = {
 		"Add tag",
 		"Compare with current"
 	};
-
-
+	
 	ImGui::SetNextItemWidth(100.0f);
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Branch");
@@ -681,11 +746,7 @@ void Game::imguiTimeline() {
 
 	int index = m_bm.getIndex();
 	if (ImGui::Combo("##hidelabel", &index, m_bm.getBranchNames().data(), m_bm.getSize())) {
-		m_bm.setBranch(index);
-		// TODO: Fix so that branch, commits and mesh is correctly changed
-		m_dxRenderer->executeNextOpenCopyCommand([&] {
-			m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
-		});
+		jumpToBranchIndex(index);
 	}
 
 	ImGui::SameLine();
@@ -693,7 +754,9 @@ void Game::imguiTimeline() {
 	if (m_branching) {
 		static char str0[128] = "";
 		ImGui::PushItemWidth(200);
-		ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0));
+		if (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+			ImGui::SetKeyboardFocusHere(0);
+		bool done = ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0), ImGuiInputTextFlags_EnterReturnsTrue);
 		ImGui::PopItemWidth();
 		// Make Ok button faded if it isn't name not written
 		int len = strlen(str0);
@@ -703,22 +766,40 @@ void Game::imguiTimeline() {
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 		}
-		if (ImGui::Button("Ok")) {
-			Area a = calcualteArea();
-			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
+		ImGui::SameLine();
+		if (ImGui::Button("Ok") || (done && len > 0 && areaSelected)) {
 
-			m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
-			m_branching = false;
-			m_points[0] = ImVec2(0, 0);
-			m_points[1] = m_points[0];
-			p1 = { a.maxX, 0.1, a.minZ };
-			p2 = { a.minX, 0.1, a.minZ };
-			p3 = { a.minX, 0.1, a.maxZ };
-			p4 = { a.maxX, 0.1, a.maxZ };
-			m_dxRenderer->executeNextOpenCopyCommand([&] {
-				m_fence2->updateVertexData(p1, p2, p3, p4);
-			});
-			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+			bool nameExists = false;
+			for (auto& branch : m_bm.getAllBranches()) {
+				if (branch.getName() == str0) {
+					nameExists = true;
+					break;
+				}
+			}
+			if (nameExists) {
+				ImGui::OpenPopup("Error##nameExists");
+			} else {
+				Area a = calcualteArea();
+				std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
+
+				if (m_bm.validArea(a)) {
+					m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
+					m_branching = false;
+					m_points[0] = ImVec2(0, 0);
+					m_points[1] = m_points[0];
+					p1 = { a.maxX, 0.1, a.minZ };
+					p2 = { a.minX, 0.1, a.minZ };
+					p3 = { a.minX, 0.1, a.maxZ };
+					p4 = { a.maxX, 0.1, a.maxZ };
+					m_dxRenderer->executeNextOpenCopyCommand([&] {
+						m_fence2->updateVertexData(p1, p2, p3, p4);
+						});
+				} else {
+					std::cout << "Invalid area" << std::endl;
+				}
+				std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+				str0[0] = '\0';
+			}
 		}
 		if (len == 0 || !areaSelected)
 		{
@@ -726,10 +807,11 @@ void Game::imguiTimeline() {
 			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel")) {
+		if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
+			str0[0] = '\0';
 		}
 	}
 	else {
@@ -753,13 +835,17 @@ void Game::imguiTimeline() {
 			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Commit")) {
-			ImGui::OpenPopup("Commit##Window");
+		// Only show commit button if there is any changes
+		if (m_bm.getCurrentBranch().getCommands().size() > 0) {
+			if (ImGui::Button("Commit")) {
+				ImGui::OpenPopup("Commit##Window");
+			}
 		}
 
 		imguiCommitWindow();
 	}
 	ImGui::EndGroup();
+
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
 	ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - 10.6f * 50.f);
@@ -783,23 +869,23 @@ void Game::imguiTimeline() {
 	for (int i = m_bm.getCurrentBranch().getCommands().size() - 1; i >= 0; i--) {
 		if (i != m_bm.getCurrentBranch().getCommands().size() - 1)
 			ImGui::SameLine();
-		bool currentCommand = m_bm.isCurrentCommand(i);
+		bool currentCommand = m_bm.getCurrentBranch().isCurrentCommand(i);
 		if (currentCommand) {
 			ImGui::PushStyleColor(ImGuiCol_Button, { 0.4,0.5,1.0,1.0 });
 		}
 
 		if (ImGui::Button(
 			(m_bm.getCurrentBranch().getCommands()[i].toolUsed->info.icon+"##"+std::to_string(i)).c_str())) {
-			if (m_bm.getCommandIndex() > i) {
-				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.undoTo(i);
+			if (m_bm.getCurrentBranch().getCommandIndex() > i) {
+				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().undoTo(i);
 				if (changes.size() > 0) {
 					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 						m_editableMesh->doChanges(changes);
 					});
 				}
 			}
-			else if (m_bm.getCommandIndex() < i) {
-				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.redoTo(i);
+			else if (m_bm.getCurrentBranch().getCommandIndex() < i) {
+				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redoTo(i);
 				if (changes.size() > 0) {
 					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
 						m_editableMesh->doChanges(changes);
@@ -845,6 +931,7 @@ void Game::imguiTimeline() {
 	}
 
 }
+
 void Game::imguiGraph() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
 	if (!ImGui::Begin("Graph", &m_showingTimelineGraph, ImGuiWindowFlags_HorizontalScrollbar)) {
@@ -990,11 +1077,7 @@ void Game::imguiGraph() {
 			hovering = true;
 			
 			if (ImGui::IsMouseClicked(0)) {
-				m_bm.setBranch(m_bm.getIndexOf(branchName));
-				// TODO: Fix so that branch, commits and mesh is correctly changed
-				m_dxRenderer->executeNextOpenCopyCommand([&] {
-					m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
-				});
+				jumpToBranchIndex(m_bm.getIndexOf(branchName));
 			}
 
 		}
@@ -1053,15 +1136,12 @@ void Game::imguiBranchHistory() {
 					openPopup = true;
 				}
 				else {
-					m_currentCommitIndex = m_jumpToCommitIndex;
-					m_dxRenderer->executeNextOpenCopyCommand([&] {
-						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
-					});
+					jumpToCommitIndex(m_jumpToCommitIndex);
 				}
 				ImGui::CloseCurrentPopup();
 			}
 			//ImGui::InputText("##edit", name, IM_ARRAYSIZE(name));
-			if (ImGui::Button("Close"))
+			if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
 				ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();
 		}
@@ -1074,11 +1154,7 @@ void Game::imguiBranchHistory() {
 				ImGui::Text("Are you sure you want to jump to this commit? All uncommitted progress will be lost.");
 
 				if (ImGui::Button("Go to commit", ImVec2(120, 0))) {
-					m_bm.getCurrentBranch().resetCommandList();
-					m_dxRenderer->executeNextOpenCopyCommand([&] {
-						m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_jumpToCommitIndex].mesh->getVertices());
-					});
-					m_currentCommitIndex = m_jumpToCommitIndex;
+					jumpToCommitIndex(m_jumpToCommitIndex);
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::SameLine();
@@ -1113,10 +1189,18 @@ void Game::imguiTools() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4.0f, 4.0f));
 
 	if (ImGui::Begin("TOOLS", &m_showingToolbar, ImGuiWindowFlags_AlwaysAutoResize)) {
-
+		
 		for (int i = 0; i < m_tools.size(); i++) {
+			bool changed = false;
+			if (&m_tools[i] == m_currentTool) {
+				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(43.0f/255.0f, 75.0f/255.0f, 255.0f/255.0f, 1.0f));
+				changed = true;
+			}
 			if (ImGui::Button(m_tools[i].info.icon.c_str())) {
 				m_currentTool = &m_tools[i];
+			}
+			if (changed) {
+				ImGui::PopStyleColor();
 			}
 			if (ImGui::IsItemHovered()) {
 				ImGui::BeginTooltip();
@@ -1163,18 +1247,20 @@ void Game::imguiToolOptions() {
 
 void Game::imguiCommitWindow() {
 	bool openPopup = false;
-	static char buf[128] = "Commit message";
+	static char buf[128] = "";
 	if (ImGui::BeginPopupModal("Commit##Window", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::Text("Input Message");
 		ImGui::SetItemDefaultFocus();
-		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
-		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
+		bool done = ImGui::InputTextWithHint("##CommitMessage", "Commit Message", buf, IM_ARRAYSIZE(buf), ImGuiInputTextFlags_EnterReturnsTrue);
+		if (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+			ImGui::SetKeyboardFocusHere(0);
+		if (ImGui::Button("Make Commit", ImVec2(120, 0)) || done) {
 			if (m_currentCommitIndex == m_bm.getCurrentBranch().getCommits().size() - 1 || m_bm.getCurrentBranch().getCommits().size() == 0) {
 				//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
 				EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 				mesh->updateData();
 				m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
-				char bufMsg[128] = "Commit message";
+				char bufMsg[128] = "";
 				strncpy_s(buf, bufMsg, 128);
 				m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
 				ImGui::CloseCurrentPopup();
@@ -1184,8 +1270,10 @@ void Game::imguiCommitWindow() {
 			}
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(120, 0))) { 
-			ImGui::CloseCurrentPopup(); 
+		if (ImGui::Button("Cancel", ImVec2(120, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
+			ImGui::CloseCurrentPopup();
+			char bufMsg[128] = "";
+			strncpy_s(buf, bufMsg, 128);
 		}
 		ImGui::EndPopup();
 	}
@@ -1193,13 +1281,13 @@ void Game::imguiCommitWindow() {
 	if (openPopup)
 		ImGui::OpenPopup("Choose your destiny...##1337");
 
-	if (ImGui::BeginPopupModal("Choose your destiny...##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::Text("You can either do the commit on your current branch and loose the commits after this point or commit to a new branch and keep this branch intact.");
+	ImGui::SetNextWindowSize(ImVec2(630, 140));
+	if (ImGui::BeginPopupModal("Choose your destiny...##1337", NULL, ImGuiWindowFlags_NoResize)) {
+		ImGui::TextWrapped("You can either do the commit on your current branch and loose the commits after this point or commit to a new branch and keep this branch intact.");
 
 		// Commit on this branch and overwrite the history after the current commit's index
-		if (ImGui::Button("Commit on this branch", ImVec2(120, 0))) {
+		if (ImGui::Button("Commit on this branch", ImVec2(180, 0))) {
 			m_bm.getCurrentBranch().resetCommandList();
-			auto commits = m_bm.getCurrentBranch().getCommits();
 			// TODO: Can probably be done in a better way.
 			m_bm.getCurrentBranch().clearCommitsToIndex(m_currentCommitIndex);
 			//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
@@ -1207,22 +1295,38 @@ void Game::imguiCommitWindow() {
 			EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 			mesh->updateData();
 			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
-			char bufMsg[128] = "Commit message";
+			char bufMsg[128] = "";
 			strncpy_s(buf, bufMsg, 128);
-			m_currentCommitIndex = commits.size() - 1;
+			m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine(); 
 		// Commit on new branch
-		if (ImGui::Button("Commit on new branch", ImVec2(120, 0))) {
+		if (ImGui::Button("Commit on new branch", ImVec2(180, 0))) {
 			// TODO: Implement
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+		if (ImGui::Button("Cancel", ImVec2(120, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
 			ImGui::CloseCurrentPopup();
+			char bufMsg[128] = "";
+			strncpy_s(buf, bufMsg, 128);
 		}
 		ImGui::SetItemDefaultFocus();
+		ImGui::EndPopup();
+	}
+}
+
+void Game::imguiMasterBranchCommandsWarning() {
+	if (m_masterBranchCommandWarning) {
+		ImGui::OpenPopup("Warning! Master Branch##doCommand");
+		m_masterBranchCommandWarning = false;
+	}
+
+	if (ImGui::BeginPopupModal("Warning! Master Branch##doCommand", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("You can not do changes on the master branch directly. Create a new branch or jump to an existing one!");
+		if (ImGui::Button("Close"))
+			ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 	}
 }
@@ -1241,17 +1345,6 @@ Area Game::calcualteArea() {
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;
-	//XMVECTOR v = XMVectorSet(x, y, 0.3f, 1.f);
-	//v = XMVector4Transform(v, invVP);
-	//float w = XMVectorGetW(v);
-	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
-	//XMVECTOR dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
-	//XMVECTOR nor = XMVectorSet(0.f, 1.f, 0.f, 0.f);
-	////float denom = XMVectorGetX(XMVector4Dot(nor, dir));
-	//float t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
-	
-	//result.minX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
-	//result.minZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
 
 	result.minX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
 	result.minZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
@@ -1265,17 +1358,6 @@ Area Game::calcualteArea() {
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;
-	//v = XMVectorSet(x, y, 0.3f, 1.f);
-	//v = XMVector4Transform(v, invVP);
-	//w = XMVectorGetW(v);
-	//v = XMVectorDivide(v, XMVectorSet(w, w, w, w));
-	//dir = XMVector4Normalize(XMVectorSubtract(v, m_aboveCamera->getPositionVec()));
-	////denom = XMVectorGetX(XMVector4Dot(nor, dir));
-	//t = -m_aboveCamera->getPositionF3().y / XMVectorGetY(dir);
-
-
-	//result.maxX = XMVectorGetX(dir) * t + m_aboveCamera->getPositionF3().x;
-	//result.maxZ = XMVectorGetZ(dir) * t + m_aboveCamera->getPositionF3().z;
 
 	result.maxX = x * m_aboveCamera->getWidth() / 2.0 + m_aboveCamera->getPositionF3().x;
 	result.maxZ = y * m_aboveCamera->getHeight() / 2.0 + m_aboveCamera->getPositionF3().z;
@@ -1288,10 +1370,18 @@ Area Game::calcualteArea() {
 	return result;
 }
 
-void Game::onCommitIndexChanged() {
-	throw(std::logic_error("This function has not been implemented yet."));
+void Game::jumpToCommitIndex(unsigned int index) {
+	m_bm.getCurrentBranch().resetCommandList();
+	m_currentCommitIndex = index;
+	m_dxRenderer->executeNextOpenCopyCommand([&] {
+		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_currentCommitIndex].mesh->getVertices());
+	});
 }
 
-void Game::onBranchIndexChanged() {
-	throw(std::logic_error("This function has not been implemented yet."));
+void Game::jumpToBranchIndex(unsigned int index) {
+	m_bm.setBranch(index);
+	m_dxRenderer->executeNextOpenCopyCommand([&] {
+		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
+	});
+	m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
 }
