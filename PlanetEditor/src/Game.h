@@ -45,7 +45,7 @@ private:
 	void imguiTools();
 	void imguiToolOptions();
 	void imguiCommitWindow();
-	void imguiCommitJumpWindow();
+	void imguiMasterBranchCommandsWarning();
 
 
 
@@ -67,6 +67,8 @@ private:
 	bool m_showingToolOptions;
 	bool m_showingBranches;
 	bool m_showingBranchHistory;
+
+	bool m_masterBranchCommandWarning;
 
 
 	Area m_sceneWindow;

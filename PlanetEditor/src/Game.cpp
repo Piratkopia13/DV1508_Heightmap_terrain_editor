@@ -226,9 +226,15 @@ void Game::update(double dt) {
 
 			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-			m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
-				m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
-			});
+			if (m_bm.getCurrentBranch().getParent() != nullptr) {
+				m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
+					m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
+				});
+			}
+			else {
+				// Display imgui warning popup modal
+				m_masterBranchCommandWarning = true;
+			}
 			
 			/* 
 			*
@@ -478,6 +484,7 @@ void Game::imguiFunc() {
 	if (m_showingBranchHistory)
 		imguiBranchHistory();
 
+	imguiMasterBranchCommandsWarning();
 
 	firstFrame = false;
 }
@@ -748,23 +755,14 @@ void Game::imguiTimeline() {
 			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Commit")) {
-			if (m_bm.getCurrentBranch().getParent() != nullptr)
+		// Only show commit button if there is any changes
+		if (m_bm.getCurrentBranch().getCommands().size() > 0) {
+			if (ImGui::Button("Commit")) {
 				ImGui::OpenPopup("Commit##Window");
-			else {
-				ImGui::OpenPopup("Master Branch##Popup");
 			}
 		}
 
 		imguiCommitWindow();
-
-		if (ImGui::BeginPopupModal("Master Branch##Popup", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-			// TODO: Change so this opens a menu to commit to a new branch instead?
-			ImGui::Text("You can not commit to the master branch. Please create a new branch or jump to an existing one.");
-			if (ImGui::Button("Close"))
-				ImGui::CloseCurrentPopup();
-			ImGui::EndPopup();
-		}
 	}
 	ImGui::EndGroup();
 	// Add spacing to right align command buttons
@@ -1223,6 +1221,20 @@ void Game::imguiCommitWindow() {
 	}
 }
 
+void Game::imguiMasterBranchCommandsWarning() {
+	if (m_masterBranchCommandWarning) {
+		ImGui::OpenPopup("Warning! Master Branch##doCommand");
+		m_masterBranchCommandWarning = false;
+	}
+
+	if (ImGui::BeginPopupModal("Warning! Master Branch##doCommand", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("You can not do changes on the master branch directly. Create a new branch or jump to an existing one!");
+		if (ImGui::Button("Close"))
+			ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
+}
+
 Area Game::calcualteArea() {
 	Area result;
 	float width = 1700;//m_dxRenderer->getWindow()->getWindowWidth();
@@ -1264,10 +1276,10 @@ Area Game::calcualteArea() {
 
 void Game::jumpToCommitIndex(unsigned int index) {
 	m_bm.getCurrentBranch().resetCommandList();
-	m_dxRenderer->executeNextOpenCopyCommand([&] {
-		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[index].mesh->getVertices());
-	});
 	m_currentCommitIndex = index;
+	m_dxRenderer->executeNextOpenCopyCommand([&] {
+		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_currentCommitIndex].mesh->getVertices());
+	});
 }
 
 void Game::jumpToBranchIndex(unsigned int index) {
