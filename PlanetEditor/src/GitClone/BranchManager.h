@@ -23,6 +23,7 @@ public:
 
 
 	Area getCurrentArea();
+	bool validArea(Area a);
 	const bool canMerge();
 
 	const bool createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh);

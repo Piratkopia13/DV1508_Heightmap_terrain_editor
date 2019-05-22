@@ -710,17 +710,22 @@ void Game::imguiTimeline() {
 			Area a = calcualteArea();
 			std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-			m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
-			m_branching = false;
-			m_points[0] = ImVec2(0, 0);
-			m_points[1] = m_points[0];
-			p1 = { a.maxX, 0.1, a.minZ };
-			p2 = { a.minX, 0.1, a.minZ };
-			p3 = { a.minX, 0.1, a.maxZ };
-			p4 = { a.maxX, 0.1, a.maxZ };
-			m_dxRenderer->executeNextOpenCopyCommand([&] {
-				m_fence2->updateVertexData(p1, p2, p3, p4);
-			});
+			if (m_bm.validArea(a)) {
+				m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
+				m_branching = false;
+				m_points[0] = ImVec2(0, 0);
+				m_points[1] = m_points[0];
+				p1 = { a.maxX, 0.1, a.minZ };
+				p2 = { a.minX, 0.1, a.minZ };
+				p3 = { a.minX, 0.1, a.maxZ };
+				p4 = { a.maxX, 0.1, a.maxZ };
+				m_dxRenderer->executeNextOpenCopyCommand([&] {
+					m_fence2->updateVertexData(p1, p2, p3, p4);
+				});
+			}
+			else {
+				std::cout << "Invalid area" << std::endl;
+			}
 			std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
 			str0[0] = '\0';
 		}

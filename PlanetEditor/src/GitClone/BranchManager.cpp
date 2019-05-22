@@ -46,6 +46,23 @@ Area BranchManager::getCurrentArea() {
 	return getCurrentBranch().getArea();
 }
 
+bool BranchManager::validArea(Area a) {
+	Area parent = getCurrentArea();
+
+	for (int i = 1; i < m_branches.size(); ++i) {
+		if (i == m_index)
+			continue;
+
+		Area temp = m_branches[i].getArea();
+		if (!(a.maxX < temp.minX || a.minX > temp.maxX || a.minZ > temp.maxZ || a.maxZ < temp.minZ))
+			return false;
+	}
+	if (parent.minX <= a.minX && parent.minZ <= a.minZ && parent.maxX >= a.maxX && parent.maxZ >= a.maxZ)
+		return true;
+
+	return false;
+}
+
 const bool BranchManager::canMerge() {
 	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0;
 }
