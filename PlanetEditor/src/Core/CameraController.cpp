@@ -102,4 +102,10 @@ void StaticCameraController::update(float dt) {
 		dynamic_cast<StaticCamera*>(m_cam)->addWidth(3.f);//setCameraPosition(getCameraPosition() + worldUp * movementSpeed);
 	if (Input::IsKeyDown('C'))
 		dynamic_cast<StaticCamera*>(m_cam)->addWidth(-3.f); //setCameraPosition(getCameraPosition() - worldUp * movementSpeed);
+
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.MouseWheel > 0.f)
+		dynamic_cast<StaticCamera*>(m_cam)->addWidth(-10.f);
+	else if (io.MouseWheel < 0.f)
+		dynamic_cast<StaticCamera*>(m_cam)->addWidth(10.f);
 }
