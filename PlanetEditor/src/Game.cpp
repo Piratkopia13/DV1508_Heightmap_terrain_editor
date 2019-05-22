@@ -755,6 +755,7 @@ void Game::imguiTimeline() {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Merge", { 60,30 })) {
+			m_bm.merge();
 			std::cout << "Merging...\n";
 		}
 		if (!m_bm.canMerge())

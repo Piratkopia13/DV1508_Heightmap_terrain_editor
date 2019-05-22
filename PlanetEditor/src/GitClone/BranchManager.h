@@ -34,6 +34,8 @@ public:
 	Area getCurrentArea();
 	bool validArea(Area a);
 	const bool canMerge();
+	void merge();
+
 
 	const bool createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh);
 	const bool setBranch(size_t index);

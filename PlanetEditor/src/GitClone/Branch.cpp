@@ -17,7 +17,7 @@ const std::string& Branch::getName() const {
 	return m_name;
 }
 
-const Branch* Branch::getParent() const {
+Branch* Branch::getParent() const {
 	return m_parent;
 }
 
