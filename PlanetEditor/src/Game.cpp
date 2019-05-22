@@ -23,7 +23,7 @@ Game::Game()
 	getRenderer().setClearColor(0.2f, 0.4f, 0.2f, 1.0f);
 	m_dxRenderer->createRenderToTextureResources();
 
-	m_persCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 110.f, 0.1f, 1000.f);
+	m_persCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 80.f, 0.1f, 1000.f);
 	m_persCamera->setPosition(XMVectorSet(7.37f, 12.44f, 13.5f, 0.f));
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
@@ -225,20 +225,20 @@ void Game::update(double dt) {
 			*		EXAMPLE OF HOW TO USE COMMANDS 
 			*
 			*/
+			XMFLOAT3 mpos;
+			XMStoreFloat3(&mpos, scenePos);
+			if (mpos.x > -0.98 && mpos.x < 0.98 && mpos.y > -0.98 && mpos.y < 0.98) {
+				EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-
-			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
-
-			if (m_bm.getCurrentBranch().getParent() != nullptr) {
-				m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
-					m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
-				});
+				if (m_bm.getCurrentBranch().getParent() != nullptr) {
+					m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
+						m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
+						});
+				} else {
+					// Display imgui warning popup modal
+					m_masterBranchCommandWarning = true;
+				}
 			}
-			else {
-				// Display imgui warning popup modal
-				m_masterBranchCommandWarning = true;
-			}
-			
 			/* 
 			*
 			*		END OF EXAMPLE OF HOW TO USE COMMANDS 
