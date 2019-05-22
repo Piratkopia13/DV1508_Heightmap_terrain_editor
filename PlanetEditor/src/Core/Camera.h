@@ -96,6 +96,12 @@ public:
 
 		return m_projMatrix;
 	}
+	void setWidth(float w) {
+		m_width = w;
+		m_projMatNeedsUpdate = true;
+		m_VPMatNeedsUpdate = true;
+		m_cbNeedsUpdate = true;
+	}
 	void addWidth(float w) {
 		m_width += w;
 		m_projMatNeedsUpdate = true;

@@ -23,13 +23,12 @@ Game::Game()
 	getRenderer().setClearColor(0.2f, 0.4f, 0.2f, 1.0f);
 	m_dxRenderer->createRenderToTextureResources();
 
-	m_persCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 110.f, 0.1f, 1000.f);
+	m_persCamera = std::make_unique<Camera>(m_dxRenderer->getWindow()->getWindowWidth() / (float)m_dxRenderer->getWindow()->getWindowHeight(), 80.f, 0.1f, 1000.f);
 	m_persCamera->setPosition(XMVectorSet(7.37f, 12.44f, 13.5f, 0.f));
 	m_persCamera->setDirection(XMVectorSet(0.17f, -0.2f, -0.96f, 1.0f));
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
 	m_aboveCamera = std::make_unique<StaticCamera>(1700.f / 537.f, 200, 0.1f, 1000.f);
-	m_aboveCamera->setPosition(XMVectorSet(100.f, 40.0f, 100.f, 0.f));
 	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
 	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
 
@@ -105,13 +104,16 @@ void Game::init() {
 
 	unsigned int offset = 0;
 	{
-		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 200.f, 200.f, 100, 100));
+		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 1000.f, 1000.f, 500, 500));
 		m_editableMesh->getMesh()->technique = m_technique.get();
 		m_editableMesh->getMesh()->setTexture2DArray(m_floorTexArray.get());
 		m_meshes.emplace_back(m_editableMesh->getMesh());
 		m_vertexBuffers.emplace_back(m_editableMesh->getVertexBuffer());
 		m_indexBuffers.emplace_back(m_editableMesh->getIndexBuffer());
 	}
+	m_persCamera->setPosition(XMVectorSet(m_editableMesh->getWidth() / 2.0f, 50.f, m_editableMesh->getHeight() / 2.0f, 0.f));
+	m_aboveCamera->setPosition(XMVectorSet(m_editableMesh->getWidth() / 2.0f, 800.0f, m_editableMesh->getHeight() / 2.0f, 0.f));
+	m_aboveCamera->setWidth(2000.f);
 
 	// create textures
 	DX12Texture2DArray* fenceTexture = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
@@ -157,7 +159,7 @@ void Game::init() {
 
 	// Initial branches
 	EditableMesh* meshCpy = new EditableMesh(*m_editableMesh.get());
-	m_bm.createBranch("Master", { 0, 200, 0, 200 }, nullptr, meshCpy);
+	m_bm.createBranch("Master", { 0, m_editableMesh->getWidth(), 0, m_editableMesh->getHeight() }, nullptr, meshCpy);
 	/*m_bm.createBranch("potato", { 0, 200, 0, 200 }, &m_bm.getCurrentBranch(), meshCpy);
 	m_bm.createBranch("test", { 0, 200, 0, 200 }, & m_bm.getCurrentBranch(), meshCpy);*/
 }
@@ -223,20 +225,20 @@ void Game::update(double dt) {
 			*		EXAMPLE OF HOW TO USE COMMANDS 
 			*
 			*/
+			XMFLOAT3 mpos;
+			XMStoreFloat3(&mpos, scenePos);
+			if (mpos.x > -0.98 && mpos.x < 0.98 && mpos.y > -0.98 && mpos.y < 0.98) {
+				EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
 
-
-			EditableMesh::VertexCommand cmd1 = { m_toolWidth, m_currentTool->func };
-
-			if (m_bm.getCurrentBranch().getParent() != nullptr) {
-				m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
-					m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
-				});
+				if (m_bm.getCurrentBranch().getParent() != nullptr) {
+					m_dxRenderer->executeNextOpenCopyCommand([&, rayOrigin, rayDirMouse, cmd1] {
+						m_editableMesh->doCommand(rayOrigin, rayDirMouse, cmd1, m_bm.getCurrentArea());
+						});
+				} else {
+					// Display imgui warning popup modal
+					m_masterBranchCommandWarning = true;
+				}
 			}
-			else {
-				// Display imgui warning popup modal
-				m_masterBranchCommandWarning = true;
-			}
-			
 			/* 
 			*
 			*		END OF EXAMPLE OF HOW TO USE COMMANDS 
@@ -503,6 +505,7 @@ void Game::imguiFunc() {
 			//std::cout << m_sceneWindow.print() << std::endl;
 
 			m_persCamera->setAspectRatio(size.x / size.y);
+			m_aboveCamera->setAspectRatio(size.x / size.y);
 			m_dxRenderer->executeNextPreFrameCommand([&]() {
 				m_dxRenderer->resizeRenderTexture(size.x, size.y);
 				});
@@ -825,6 +828,7 @@ void Game::imguiTimeline() {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Merge", { 60,30 })) {
+			m_bm.merge();
 			std::cout << "Merging...\n";
 		}
 		if (!m_bm.canMerge())

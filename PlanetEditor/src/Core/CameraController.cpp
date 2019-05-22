@@ -84,6 +84,7 @@ float& CameraController::getMovementSpeed() {
 StaticCameraController::StaticCameraController(Camera* cam, const DirectX::XMVECTOR& startDirection) : CameraController(cam, startDirection) {
 	cam->m_dir = XMVectorSet(0.f, -1.f, 0.f, 0.f);
 	cam->m_up = XMVectorSet(0.f, 0.f, 1.f, 0.f);
+	m_speed = 200.f;
 }
 
 void StaticCameraController::update(float dt) {
@@ -109,7 +110,7 @@ void StaticCameraController::update(float dt) {
 
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.MouseWheel > 0.f)
-		dynamic_cast<StaticCamera*>(m_cam)->addWidth(-10.f);
+		dynamic_cast<StaticCamera*>(m_cam)->addWidth(-70.f);
 	else if (io.MouseWheel < 0.f)
-		dynamic_cast<StaticCamera*>(m_cam)->addWidth(10.f);
+		dynamic_cast<StaticCamera*>(m_cam)->addWidth(70.f);
 }

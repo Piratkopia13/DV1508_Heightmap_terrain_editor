@@ -10,7 +10,10 @@
 #include <chrono>
 
 // Currently creates a width by height large mesh with specified number of vertices
-EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY) {
+EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY) 
+	: m_width(width)
+	, m_height(height)
+{
 
 	assert(numVertsX > 2 && numVertsY > 2 && width > 0.f && height > 0.f);
 
@@ -124,6 +127,14 @@ IndexBuffer * EditableMesh::getIndexBuffer() {
 	return m_indexBuffer.get();
 }
 
+float EditableMesh::getWidth() {
+	return m_width;
+}
+
+float EditableMesh::getHeight() {
+	return m_height;
+}
+
 void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd, Area area) {
 	int maxIntDistX = int(cmd.radius / m_vertLengthX);
 	int maxIntDistY = int(cmd.radius / m_vertLengthY);
@@ -193,6 +204,20 @@ void EditableMesh::doChanges(const std::vector<std::pair<unsigned int, XMFLOAT3>
 		vertices[change.first].position.y += change.second.y;
 		vertices[change.first].position.z += change.second.z;
 	}
+	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex));
+}
+
+void EditableMesh::updateSubArea(EditableMesh* e, Area area) {
+	for (size_t y = 0; y < m_numVertsY - 1; y++) {
+		for (size_t x = 0; x < m_numVertsX - 1; x++) {
+			auto& p = vertices[y * m_numVertsX + x].position;
+			if (p.x > area.maxX || p.x < area.minX || p.z > area.maxZ || p.z < area.minZ)
+				continue;
+
+			vertices[y * m_numVertsX + x] = e->vertices[y * m_numVertsX + x];
+		}
+	}
+	((DX12VertexBuffer*)m_vertexBuffer.get())->setData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex), 0);
 	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex));
 }
 

@@ -67,6 +67,19 @@ const bool BranchManager::canMerge() {
 	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0;
 }
 
+void BranchManager::merge() {
+	auto parent = m_branches[m_index].getParent();
+	auto cs = parent->getCommits();
+	auto c = cs[cs.size() - 1];
+	EditableMesh* e = new EditableMesh(*c.mesh);
+	e->updateData();
+	cs = m_branches[m_index].getCommits();
+	c = cs[cs.size() - 1];
+	e->updateSubArea((c.mesh).get(), getCurrentArea());
+
+	parent->createCommit(c.author, "Merge", e);
+}
+
 const bool BranchManager::createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh) {
 	m_branches.emplace_back(name, area, parent);
 	m_branches[m_branches.size() - 1].createCommit("Branch", "Branch created", initalMesh);
