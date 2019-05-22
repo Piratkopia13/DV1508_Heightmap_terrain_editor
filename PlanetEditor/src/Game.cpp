@@ -674,12 +674,21 @@ void Game::imguiTimeline() {
 	ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvailWidth() - width.x, ImGui::GetCursorPosY()));
 	ImGui::Text(text.c_str());*/
 
+	if (ImGui::BeginPopupModal("Error##nameExists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("A branch with that name already exists!\n\n");
+
+		ImGui::SetItemDefaultFocus();
+		if (ImGui::Button("OK", ImVec2(240, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+	
 	const char* popupOptions[] = {
 		"Add tag",
 		"Compare with current"
 	};
-
-
+	
 	ImGui::SetNextItemWidth(100.0f);
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text("Branch");
@@ -694,9 +703,9 @@ void Game::imguiTimeline() {
 	ImGui::BeginGroup();
 	if (m_branching) {
 		static char str0[128] = "";
+		ImGui::PushItemWidth(200);
 		if (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
 			ImGui::SetKeyboardFocusHere(0);
-		ImGui::PushItemWidth(200);
 		bool done = ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0), ImGuiInputTextFlags_EnterReturnsTrue);
 		ImGui::PopItemWidth();
 		// Make Ok button faded if it isn't name not written
@@ -707,7 +716,8 @@ void Game::imguiTimeline() {
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 		}
-		if (ImGui::Button("Ok") || done) {
+		ImGui::SameLine();
+		if (ImGui::Button("Ok") || (done && len > 0 && areaSelected) ) {
 
 			bool nameExists = false;
 			for (auto& branch : m_bm.getAllBranches()) {
@@ -781,16 +791,6 @@ void Game::imguiTimeline() {
 		imguiCommitWindow();
 	}
 	ImGui::EndGroup();
-
-	if (ImGui::BeginPopupModal("Error##nameExists", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::Text("A branch with that name already exists!\n\n");
-
-		ImGui::SetItemDefaultFocus();
-		if (ImGui::Button("OK", ImVec2(240, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Enter))) {
-			ImGui::CloseCurrentPopup(); 
-		}
-		ImGui::EndPopup();
-	}
 
 	// Add spacing to right align command buttons
 	//ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - commands.size() * 45.f);
