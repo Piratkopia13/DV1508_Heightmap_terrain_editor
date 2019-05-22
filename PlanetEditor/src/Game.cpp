@@ -1140,7 +1140,7 @@ void Game::imguiBranchHistory() {
 				ImGui::CloseCurrentPopup();
 			}
 			//ImGui::InputText("##edit", name, IM_ARRAYSIZE(name));
-			if (ImGui::Button("Close"))
+			if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape)))
 				ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();
 		}
@@ -1280,11 +1280,12 @@ void Game::imguiCommitWindow() {
 	if (openPopup)
 		ImGui::OpenPopup("Choose your destiny...##1337");
 
-	if (ImGui::BeginPopupModal("Choose your destiny...##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-		ImGui::Text("You can either do the commit on your current branch and loose the commits after this point or commit to a new branch and keep this branch intact.");
+	ImGui::SetNextWindowSize(ImVec2(630, 140));
+	if (ImGui::BeginPopupModal("Choose your destiny...##1337", NULL, ImGuiWindowFlags_NoResize)) {
+		ImGui::TextWrapped("You can either do the commit on your current branch and loose the commits after this point or commit to a new branch and keep this branch intact.");
 
 		// Commit on this branch and overwrite the history after the current commit's index
-		if (ImGui::Button("Commit on this branch", ImVec2(120, 0))) {
+		if (ImGui::Button("Commit on this branch", ImVec2(180, 0))) {
 			m_bm.getCurrentBranch().resetCommandList();
 			// TODO: Can probably be done in a better way.
 			m_bm.getCurrentBranch().clearCommitsToIndex(m_currentCommitIndex);
@@ -1300,7 +1301,7 @@ void Game::imguiCommitWindow() {
 		}
 		ImGui::SameLine(); 
 		// Commit on new branch
-		if (ImGui::Button("Commit on new branch", ImVec2(120, 0))) {
+		if (ImGui::Button("Commit on new branch", ImVec2(180, 0))) {
 			// TODO: Implement
 			ImGui::CloseCurrentPopup();
 		}
