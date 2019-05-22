@@ -28,6 +28,8 @@ public:
 	DX12Mesh* getMesh();
 	VertexBuffer* getVertexBuffer();
 	IndexBuffer* getIndexBuffer();
+	float getWidth();
+	float getHeight();
 
 	void doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd, Area area);
 	void doChanges(const std::vector<std::pair<unsigned int, XMFLOAT3>>& delta);

@@ -10,7 +10,10 @@
 #include <chrono>
 
 // Currently creates a width by height large mesh with specified number of vertices
-EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY) {
+EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, size_t numVertsX, size_t numVertsY) 
+	: m_width(width)
+	, m_height(height)
+{
 
 	assert(numVertsX > 2 && numVertsY > 2 && width > 0.f && height > 0.f);
 
@@ -122,6 +125,14 @@ VertexBuffer * EditableMesh::getVertexBuffer() {
 
 IndexBuffer * EditableMesh::getIndexBuffer() {
 	return m_indexBuffer.get();
+}
+
+float EditableMesh::getWidth() {
+	return m_width;
+}
+
+float EditableMesh::getHeight() {
+	return m_height;
 }
 
 void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, const VertexCommand& cmd, Area area) {

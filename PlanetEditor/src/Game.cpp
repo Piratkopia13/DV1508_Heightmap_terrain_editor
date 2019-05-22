@@ -29,7 +29,6 @@ Game::Game()
 	m_persCameraController = std::make_unique<CameraController>(m_persCamera.get(), m_persCamera->getDirectionVec());
 
 	m_aboveCamera = std::make_unique<StaticCamera>(1700.f / 537.f, 200, 0.1f, 1000.f);
-	m_aboveCamera->setPosition(XMVectorSet(100.f, 40.0f, 100.f, 0.f));
 	m_aboveCamera->setDirection(XMVectorSet(0.0f, -1.f, -0.0f, 1.0f));
 	m_aboveCameraController = std::make_unique<StaticCameraController>(m_aboveCamera.get(), m_aboveCamera->getDirectionVec());
 
@@ -105,13 +104,16 @@ void Game::init() {
 
 	unsigned int offset = 0;
 	{
-		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 200.f, 200.f, 100, 100));
+		m_editableMesh = std::unique_ptr<EditableMesh>(new EditableMesh(m_dxRenderer, 1000.f, 1000.f, 500, 500));
 		m_editableMesh->getMesh()->technique = m_technique.get();
 		m_editableMesh->getMesh()->setTexture2DArray(m_floorTexArray.get());
 		m_meshes.emplace_back(m_editableMesh->getMesh());
 		m_vertexBuffers.emplace_back(m_editableMesh->getVertexBuffer());
 		m_indexBuffers.emplace_back(m_editableMesh->getIndexBuffer());
 	}
+	m_persCamera->setPosition(XMVectorSet(m_editableMesh->getWidth() / 2.0f, 50.f, m_editableMesh->getHeight() / 2.0f, 0.f));
+	m_aboveCamera->setPosition(XMVectorSet(m_editableMesh->getWidth() / 2.0f, 800.0f, m_editableMesh->getHeight() / 2.0f, 0.f));
+	m_aboveCamera->setWidth(2000.f);
 
 	// create textures
 	DX12Texture2DArray* fenceTexture = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
@@ -157,7 +159,7 @@ void Game::init() {
 
 	// Initial branches
 	EditableMesh* meshCpy = new EditableMesh(*m_editableMesh.get());
-	m_bm.createBranch("Master", { 0, 200, 0, 200 }, nullptr, meshCpy);
+	m_bm.createBranch("Master", { 0, m_editableMesh->getWidth(), 0, m_editableMesh->getHeight() }, nullptr, meshCpy);
 	/*m_bm.createBranch("potato", { 0, 200, 0, 200 }, &m_bm.getCurrentBranch(), meshCpy);
 	m_bm.createBranch("test", { 0, 200, 0, 200 }, & m_bm.getCurrentBranch(), meshCpy);*/
 }
@@ -505,6 +507,7 @@ void Game::imguiFunc() {
 			//std::cout << m_sceneWindow.print() << std::endl;
 
 			m_persCamera->setAspectRatio(size.x / size.y);
+			m_aboveCamera->setAspectRatio(size.x / size.y);
 			m_dxRenderer->executeNextPreFrameCommand([&]() {
 				m_dxRenderer->resizeRenderTexture(size.x, size.y);
 				});
