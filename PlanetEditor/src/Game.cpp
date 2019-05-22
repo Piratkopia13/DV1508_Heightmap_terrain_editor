@@ -354,7 +354,7 @@ void Game::imguiInit() {
 	m_historyWarning = 20;
 	m_historyWarningShow = false;
 	m_toolHelpText = true;
-	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add height", "1", "this high things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_BRUSH) + "##1", "add height", "1", "this high things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		float delta = 0.0;
 		for each (auto vertex in vectorStuff) {
@@ -367,7 +367,7 @@ void Game::imguiInit() {
 
 		});
 
-	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_ROLLER, "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_ROLLER)+"##2", "Set Height", "2", "setting the height of things" ), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		float highestImpact = 0.f;
 		float height = 0.f;
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
@@ -386,7 +386,7 @@ void Game::imguiInit() {
 		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
-	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "reduce height", "3", "this low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_BRUSH) + "##3", "reduce height", "3", "this low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		float delta = 0.0;
 		for each (auto vertex in vectorStuff) {
@@ -398,7 +398,7 @@ void Game::imguiInit() {
 		m_bm.getCurrentBranch().addCommand(m_currentTool, { m_toolStrength, m_toolWidth }, positions);
 
 		});
-	m_tools.emplace_back(Tool::ToolInfo(ICON_FA_PAINT_BRUSH, "add/reduce height", "4", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
+	m_tools.emplace_back(Tool::ToolInfo(std::string(ICON_FA_PAINT_BRUSH) + "##4", "add/reduce height", "4", "this high and low things"), [&](Vertex * vertices, std::vector<std::pair<unsigned int, float>> vectorStuff) {
 		std::vector<std::pair<unsigned int, XMFLOAT3>> positions;
 		float delta = 0.0;
 		for each (auto vertex in vectorStuff) {
