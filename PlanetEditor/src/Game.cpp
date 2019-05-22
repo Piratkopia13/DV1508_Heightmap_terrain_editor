@@ -697,7 +697,7 @@ void Game::imguiTimeline() {
 		if (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
 			ImGui::SetKeyboardFocusHere(0);
 		ImGui::PushItemWidth(200);
-		ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0));
+		bool done = ImGui::InputTextWithHint("##Branch_Name", "Branch Name", str0, IM_ARRAYSIZE(str0), ImGuiInputTextFlags_EnterReturnsTrue);
 		ImGui::PopItemWidth();
 		// Make Ok button faded if it isn't name not written
 		int len = strlen(str0);
@@ -707,7 +707,7 @@ void Game::imguiTimeline() {
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 		}
-		if (ImGui::Button("Ok")) {
+		if (ImGui::Button("Ok") || done) {
 
 			bool nameExists = false;
 			for (auto& branch : m_bm.getAllBranches()) {
@@ -734,6 +734,7 @@ void Game::imguiTimeline() {
 					m_fence2->updateVertexData(p1, p2, p3, p4);
 					});
 				std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
+				str0[0] = '\0';
 			}
 		}
 		if (len == 0 || !areaSelected)
@@ -742,10 +743,11 @@ void Game::imguiTimeline() {
 			ImGui::PopStyleVar();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel")) {
+		if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
 			m_branching = false;
 			m_points[0] = ImVec2(0, 0);
 			m_points[1] = m_points[0];
+			str0[0] = '\0';
 		}
 	}
 	else {
@@ -1183,18 +1185,20 @@ void Game::imguiToolOptions() {
 
 void Game::imguiCommitWindow() {
 	bool openPopup = false;
-	static char buf[128] = "Commit message";
+	static char buf[128] = "";
 	if (ImGui::BeginPopupModal("Commit##Window", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
 		ImGui::Text("Input Message");
 		ImGui::SetItemDefaultFocus();
-		ImGui::InputText("##CommitMessage", buf, IM_ARRAYSIZE(buf));
-		if (ImGui::Button("Make Commit", ImVec2(120, 0))) {
+		bool done = ImGui::InputTextWithHint("##CommitMessage", "Commit Message", buf, IM_ARRAYSIZE(buf), ImGuiInputTextFlags_EnterReturnsTrue);
+		if (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+			ImGui::SetKeyboardFocusHere(0);
+		if (ImGui::Button("Make Commit", ImVec2(120, 0)) || done) {
 			if (m_currentCommitIndex == m_bm.getCurrentBranch().getCommits().size() - 1 || m_bm.getCurrentBranch().getCommits().size() == 0) {
 				//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
 				EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 				mesh->updateData();
 				m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
-				char bufMsg[128] = "Commit message";
+				char bufMsg[128] = "";
 				strncpy_s(buf, bufMsg, 128);
 				m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
 				ImGui::CloseCurrentPopup();
@@ -1204,8 +1208,10 @@ void Game::imguiCommitWindow() {
 			}
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(120, 0))) { 
-			ImGui::CloseCurrentPopup(); 
+		if (ImGui::Button("Cancel", ImVec2(120, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
+			ImGui::CloseCurrentPopup();
+			char bufMsg[128] = "";
+			strncpy_s(buf, bufMsg, 128);
 		}
 		ImGui::EndPopup();
 	}
@@ -1226,7 +1232,7 @@ void Game::imguiCommitWindow() {
 			EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 			mesh->updateData();
 			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
-			char bufMsg[128] = "Commit message";
+			char bufMsg[128] = "";
 			strncpy_s(buf, bufMsg, 128);
 			m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
 			ImGui::CloseCurrentPopup();
@@ -1238,8 +1244,10 @@ void Game::imguiCommitWindow() {
 			ImGui::CloseCurrentPopup();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+		if (ImGui::Button("Cancel", ImVec2(120, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
 			ImGui::CloseCurrentPopup();
+			char bufMsg[128] = "";
+			strncpy_s(buf, bufMsg, 128);
 		}
 		ImGui::SetItemDefaultFocus();
 		ImGui::EndPopup();
