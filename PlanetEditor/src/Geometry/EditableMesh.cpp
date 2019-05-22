@@ -207,6 +207,20 @@ void EditableMesh::doChanges(const std::vector<std::pair<unsigned int, XMFLOAT3>
 	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex));
 }
 
+void EditableMesh::updateSubArea(EditableMesh* e, Area area) {
+	for (size_t y = 0; y < m_numVertsY - 1; y++) {
+		for (size_t x = 0; x < m_numVertsX - 1; x++) {
+			auto& p = vertices[y * m_numVertsX + x].position;
+			if (p.x > area.maxX || p.x < area.minX || p.z > area.maxZ || p.z < area.minZ)
+				continue;
+
+			vertices[y * m_numVertsX + x] = e->vertices[y * m_numVertsX + x];
+		}
+	}
+	((DX12VertexBuffer*)m_vertexBuffer.get())->setData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex), 0);
+	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex));
+}
+
 // TODO: Move to utility functions
 bool EditableMesh::rayTriangleIntersect(XMVECTOR rayOrigin, XMVECTOR rayDir, XMVECTOR p0, XMVECTOR p1, XMVECTOR p2, XMFLOAT3& outIntersectionPoint) {
 	XMVECTOR intersectionPoint;

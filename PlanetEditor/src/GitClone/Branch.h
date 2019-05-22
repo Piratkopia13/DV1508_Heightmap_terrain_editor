@@ -57,7 +57,7 @@ public:
 	~Branch() = default;
 
 	const std::string& getName() const;
-	const Branch* getParent() const;
+	Branch* getParent() const;
 	Area getArea() const;
 
 	void addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition);

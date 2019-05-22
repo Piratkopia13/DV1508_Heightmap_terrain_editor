@@ -21,7 +21,7 @@ const std::string& Branch::getName() const {
 	return m_name;
 }
 
-const Branch* Branch::getParent() const {
+Branch* Branch::getParent() const {
 	return m_parent;
 }
 
@@ -58,7 +58,7 @@ std::vector<Branch::Commit>& Branch::getCommits() {
 }
 
 void Branch::resetCommandList() {
-	m_commandIndex = 0;
+	m_commandIndex = -1;
 	m_commands.clear();
 }
 
