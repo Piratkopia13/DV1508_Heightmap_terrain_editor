@@ -1298,10 +1298,10 @@ Area Game::calcualteArea() {
 
 void Game::jumpToCommitIndex(unsigned int index) {
 	m_bm.getCurrentBranch().resetCommandList();
-	m_dxRenderer->executeNextOpenCopyCommand([&] {
-		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[index].mesh->getVertices());
-	});
 	m_currentCommitIndex = index;
+	m_dxRenderer->executeNextOpenCopyCommand([&] {
+		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_currentCommitIndex].mesh->getVertices());
+	});
 }
 
 void Game::jumpToBranchIndex(unsigned int index) {
