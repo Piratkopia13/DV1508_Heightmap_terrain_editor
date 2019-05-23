@@ -111,7 +111,7 @@ void Game::init() {
 		m_vertexBuffers.emplace_back(m_editableMesh->getVertexBuffer());
 		m_indexBuffers.emplace_back(m_editableMesh->getIndexBuffer());
 	}
-	m_persCamera->setPosition(XMVectorSet(m_editableMesh->getWidth() / 2.0f, 50.f, m_editableMesh->getHeight() / 2.0f, 0.f));
+	m_persCamera->setPosition(XMVectorSet(m_editableMesh->getWidth() / 2.0f, 10.f, m_editableMesh->getHeight() / 2.0f, 0.f));
 	m_aboveCamera->setPosition(XMVectorSet(m_editableMesh->getWidth() / 2.0f, 800.0f, m_editableMesh->getHeight() / 2.0f, 0.f));
 	m_aboveCamera->setWidth(2000.f);
 
@@ -512,15 +512,20 @@ void Game::imguiFunc() {
 		}
 	}
 	if (m_branching) {
+		auto color = IM_COL32(255, 255, 255, 255);
+		if (!m_areaIsValid) {
+			color = IM_COL32(255, 10, 10, 255);
+		}
+		float thicc = 5.0f;
 		auto drawlist = ImGui::GetWindowDrawList();
 		ImVec2 tl(m_points[0].x, m_points[0].y);
 		ImVec2 tr(m_points[1].x, m_points[0].y);
 		ImVec2 bl(m_points[0].x, m_points[1].y);
 		ImVec2 br(m_points[1].x, m_points[1].y);
-		drawlist->AddLine(tl, tr, IM_COL32(255, 255, 255, 255));
-		drawlist->AddLine(br, tr, IM_COL32(255, 255, 255, 255));
-		drawlist->AddLine(br, bl, IM_COL32(255, 255, 255, 255));
-		drawlist->AddLine(tl, bl, IM_COL32(255, 255, 255, 255));
+		drawlist->AddLine(tl, tr, color, thicc);
+		drawlist->AddLine(br, tr, color, thicc);
+		drawlist->AddLine(br, bl, color, thicc);
+		drawlist->AddLine(tl, bl, color, thicc);
 	}
 	ImGui::End();
 	ImGui::PopStyleVar();
@@ -717,6 +722,7 @@ void Game::imguiTimeline() {
 		ImGui::End();
 		return;
 	}
+
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
 
 	ImGui::Text("Timeline things", &m_showingTimeline);
@@ -762,13 +768,17 @@ void Game::imguiTimeline() {
 		// Make Ok button faded if it isn't name not written
 		int len = strlen(str0);
 		bool areaSelected = m_points[0].y != 0;
-		if (len == 0 || !areaSelected)
-		{
+		
+		Area a = calcualteArea();
+		m_areaIsValid = m_bm.validArea(a);
+
+		if (len == 0 || !areaSelected || !m_areaIsValid) {
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
 		}
+
 		ImGui::SameLine();
-		if (ImGui::Button("Ok") || (done && len > 0 && areaSelected)) {
+		if ((ImGui::Button("Ok") || (done && len > 0 && areaSelected)) && m_areaIsValid) {
 
 			bool nameExists = false;
 			for (auto& branch : m_bm.getAllBranches()) {
@@ -780,10 +790,9 @@ void Game::imguiTimeline() {
 			if (nameExists) {
 				ImGui::OpenPopup("Error##nameExists");
 			} else {
-				Area a = calcualteArea();
 				std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-				if (m_bm.validArea(a)) {
+				//if (m_bm.validArea(a)) {
 					m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
 					m_branching = false;
 					m_points[0] = ImVec2(0, 0);
@@ -795,14 +804,14 @@ void Game::imguiTimeline() {
 					m_dxRenderer->executeNextOpenCopyCommand([&] {
 						m_fence2->updateVertexData(p1, p2, p3, p4);
 						});
-				} else {
+				/*} else {
 					std::cout << "Invalid area" << std::endl;
-				}
+				}*/
 				std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
 				str0[0] = '\0';
 			}
 		}
-		if (len == 0 || !areaSelected)
+		if (len == 0 || !areaSelected || !m_areaIsValid)
 		{
 			ImGui::PopItemFlag();
 			ImGui::PopStyleVar();
@@ -818,7 +827,9 @@ void Game::imguiTimeline() {
 	else {
 		if (ImGui::Button("Branch", { 60,30 })) {
 			m_branching = true;
+			//ImGui::OpenPopup("New branch");
 		}
+		//imguiNewBranchWindow();
 
 		// Make Merge button faded if it isn't possible to merge
 		if (!m_bm.canMerge())
@@ -1245,6 +1256,39 @@ void Game::imguiToolOptions() {
 	}
 	ImGui::End();
 
+}
+
+void Game::imguiNewBranchWindow() {
+	static char buf[128] = "";
+	if (ImGui::BeginPopupModal("New branch", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("Branch name");
+		ImGui::SetItemDefaultFocus();
+		bool done = ImGui::InputTextWithHint("##BranchName", "Name", buf, IM_ARRAYSIZE(buf), ImGuiInputTextFlags_EnterReturnsTrue);
+		if (ImGui::IsRootWindowOrAnyChildFocused() && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+			ImGui::SetKeyboardFocusHere(0);
+		if (ImGui::Button("Create", ImVec2(120, 0)) || done) {
+			std::cout << "new branch" << std::endl;
+			//if (m_currentCommitIndex == m_bm.getCurrentBranch().getCommits().size() - 1 || m_bm.getCurrentBranch().getCommits().size() == 0) {
+			//	//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
+			//	EditableMesh* mesh = new EditableMesh(*m_editableMesh);
+			//	mesh->updateData();
+			//	m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+			//	char bufMsg[128] = "";
+			//	strncpy_s(buf, bufMsg, 128);
+			//	m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
+			//	ImGui::CloseCurrentPopup();
+			//} else {
+			//	//openPopup = true;
+			//}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {
+			ImGui::CloseCurrentPopup();
+			char bufMsg[128] = "";
+			strncpy_s(buf, bufMsg, 128);
+		}
+		ImGui::EndPopup();
+	}
 }
 
 void Game::imguiCommitWindow() {

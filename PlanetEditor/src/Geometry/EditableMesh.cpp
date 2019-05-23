@@ -34,12 +34,14 @@ EditableMesh::EditableMesh(DX12Renderer* renderer, float width, float height, si
 	m_vertLengthX = width / float(numVertsX);
 	m_vertLengthY = height / float(numVertsY);
 
+	float texScale = 50.0f;
+
 	for (size_t y = 0; y < numVertsY; y++) {
 		for (size_t x = 0; x < numVertsX; x++) {
 			vertices[y * numVertsX + x] = { 	
 				XMFLOAT3{x * m_vertLengthX, 0, y * m_vertLengthY}, // position
 				XMFLOAT3{0.f, 1.f, 0.f},  // normal
-				XMFLOAT2{float(x) / float(numVertsX - 1), float(y) / float(numVertsY - 1)} // uv
+				XMFLOAT2{(float(x) / float(numVertsX - 1)) * texScale, (float(y) / float(numVertsY - 1)) * texScale} // uv
 			};
 
 			// Add square indices (2 triangles)

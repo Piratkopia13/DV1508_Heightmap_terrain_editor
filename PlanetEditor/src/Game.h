@@ -44,6 +44,7 @@ private:
 	void imguiBranchHistory();
 	void imguiTools();
 	void imguiToolOptions();
+	void imguiNewBranchWindow();
 	void imguiCommitWindow();
 	void imguiMasterBranchCommandsWarning();
 
@@ -88,7 +89,7 @@ private:
 private:
 	unsigned int m_jumpToCommitIndex;
 	unsigned int m_currentCommitIndex;
-	
+	bool m_areaIsValid;
 
 
 
