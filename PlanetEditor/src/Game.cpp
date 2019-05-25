@@ -1111,31 +1111,32 @@ void Game::imguiGraph() {
 }
 
 void Game::imguiBranchHistory() {
+	//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(50, 15));
 	if (!ImGui::Begin("Branch History", &m_showingBranchHistory)) {
 		ImGui::End();
 		return;
 	}
 
 	ImGui::Text("Current branch: %s", m_bm.getCurrentBranch().getName().c_str());
-	ImGui::Columns(3, "mycolumns"); // 3-ways, with border
+	ImGui::Columns(4, "mycolumns"); // 3-ways, with border
+
 	ImGui::Separator();
+	ImGui::NextColumn();
 	ImGui::Text("Author"); ImGui::NextColumn();
 	ImGui::Text("Date"); ImGui::NextColumn();
 	ImGui::Text("Message"); ImGui::NextColumn();
 	ImGui::Separator();
 
-	const int numCommits = 4;
-	const char* authors[numCommits] = { "Me", "Me", "You", "Me" };
-	const char* dates[numCommits] = { "2019-05-12 13:37", "2019-05-12 13:38", "2019-05-21 03:12", "2019-05-21 10:12" };
-	const char* messages[numCommits] = { "Created mountain", "Created a small mountain on the other mountain", "Removed stupid mountains", "Re-added beautiful mountains" };
 	static int selected = -1;
 	// Set default column widths
 	if (firstFrame) {
-		ImGui::SetColumnWidth(0, 100);
-		ImGui::SetColumnWidth(1, 155);
+		ImGui::SetColumnWidth(0, 40);
+		ImGui::SetColumnWidth(1, 100);
+		ImGui::SetColumnWidth(2, 155);
 	}
 	int i = 0;
 	for (auto& commit : m_bm.getCurrentBranch().getCommits()) {
+		ImGui::NextColumn();
 		if (ImGui::Selectable((commit.author + "##" + std::to_string(i)).c_str() , selected == i, ImGuiSelectableFlags_SpanAllColumns)) {
 			selected = i;
 			std::cout << "Selected branch commit " << selected << std::endl;
@@ -1192,6 +1193,15 @@ void Game::imguiBranchHistory() {
 	}
 	ImGui::Columns(1);
 	ImGui::Separator();
+	//ImGui::PopStyleVar();
+
+	int numCommits = m_bm.getCurrentBranch().getCommits().size();
+	int commitIndex = numCommits - m_currentCommitIndex - 1;
+	std::cout << commitIndex << std::endl;
+	ImGui::SetCursorPos(ImVec2(15, 90));
+	if (ImGui::VSliderInt("##int", ImVec2(15, numCommits * 20 + 10), &commitIndex, 0, numCommits - 1)) {
+		jumpToCommitIndex(numCommits - commitIndex - 1);
+	}
 
 	ImGui::End();
 }
