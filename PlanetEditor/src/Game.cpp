@@ -1211,7 +1211,6 @@ void Game::imguiBranchHistory() {
 
 	int numCommits = m_bm.getCurrentBranch().getCommits().size();
 	int commitIndex = numCommits - m_currentCommitIndex - 1;
-	std::cout << commitIndex << std::endl;
 	ImGui::SetCursorPos(ImVec2(15, 90));
 	if (ImGui::VSliderInt("##int", ImVec2(15, numCommits * 20 + 10), &commitIndex, 0, numCommits - 1)) {
 		jumpToCommitIndex(numCommits - commitIndex - 1);
