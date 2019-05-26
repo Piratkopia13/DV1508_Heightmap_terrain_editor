@@ -114,6 +114,8 @@ private:
 	std::unique_ptr<EditableMesh> m_editableMesh;
 
 	std::unique_ptr<Fence> m_fence;
+	Fence *m_fences[10];
+	int nr_fences = -1;
 	std::unique_ptr<Fence> m_fence2;
 	std::unique_ptr<DX12Texture2DArray> m_fenceTexArray;
 	std::unique_ptr<DX12Texture2DArray> m_fence2TexArray;

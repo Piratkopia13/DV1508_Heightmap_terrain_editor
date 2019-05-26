@@ -49,6 +49,9 @@ Game::~Game() {
 		if (m_models[i])
 			delete m_models[i];
 	}
+
+	for (int i = 0; i < 10; ++i)
+		delete m_fences[i];
 }
 
 void Game::init() {
@@ -144,7 +147,11 @@ void Game::init() {
 		//m_vertexBuffers.emplace_back(m_fence2->getVertexBuffer());
 		//m_indexBuffers.emplace_back(m_fence2->getIndexBuffer());
 	}
-
+	for (int i = 0; i < 10; ++i) {
+		m_fences[i] = new Fence(m_dxRenderer, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 });
+		m_fences[i]->getMesh()->technique = m_technique.get();
+		m_fences[i]->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+	}
 	if (m_dxRenderer->isDXREnabled()) {
 		// Update raytracing acceleration structures
 		/*m_dxRenderer->getDXR().setMeshes(m_meshes);
@@ -801,8 +808,15 @@ void Game::imguiTimeline() {
 					p2 = { a.minX, 0.1, a.minZ };
 					p3 = { a.minX, 0.1, a.maxZ };
 					p4 = { a.maxX, 0.1, a.maxZ };
+					nr_fences++;
+					for (int i = 0; i < nr_fences; ++i)
+						m_fences[i]->getMesh()->setTexture2DArray(m_fence2TexArray.get());
+					m_meshes.emplace_back(m_fences[nr_fences]->getMesh());
+					m_fences[nr_fences]->getMesh()->setTexture2DArray(m_fenceTexArray.get());
 					m_dxRenderer->executeNextOpenCopyCommand([&] {
-						m_fence2->updateVertexData(p1, p2, p3, p4);
+						m_fences[nr_fences]->updateVertexData(p1, p2, p3, p4);
+						//m_fences[m_fences.size() - 1]->updateVertexData(p1, p2, p3, p4);
+						//m_fence2->updateVertexData(p1, p2, p3, p4);
 						});
 				/*} else {
 					std::cout << "Invalid area" << std::endl;
@@ -1440,4 +1454,9 @@ void Game::jumpToBranchIndex(unsigned int index) {
 		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
 	});
 	m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
+
+	for (int i = 0; i < 10; ++i)
+		m_fences[i]->getMesh()->setTexture2DArray(m_fence2TexArray.get());
+	if (index > 0)
+		m_fences[index - 1]->getMesh()->setTexture2DArray(m_fenceTexArray.get());
 }
