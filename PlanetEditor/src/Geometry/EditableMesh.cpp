@@ -141,6 +141,7 @@ void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, 
 	int maxIntDistX = int(cmd.radius / m_vertLengthX);
 	int maxIntDistY = int(cmd.radius / m_vertLengthY);
 	bool rayHit = false;
+	bool validArea = false;
 	float piHalf = 1.57079632679f;
 	std::vector<std::pair<unsigned int, float>> vertIndicesAndDst;
 	for (size_t y = 0; y < m_numVertsY - 1; y++) {
@@ -170,6 +171,10 @@ void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, 
 				rayHit = true;
 
 			if (rayHit) {
+				if (intersectionPoint.x > area.maxX || intersectionPoint.x < area.minX || intersectionPoint.z > area.maxZ || intersectionPoint.z < area.minZ) {
+					break;
+				}
+				validArea = true;
 				int middleX = int(round(intersectionPoint.x / m_vertLengthX));
 				// Y on the mesh in world coordinates is Z
 				int middleY = int(round(intersectionPoint.z / m_vertLengthY));
@@ -194,7 +199,7 @@ void EditableMesh::doCommand(const XMVECTOR& rayOrigin, const XMVECTOR& rayDir, 
 			break;
 	}
 
-	if (rayHit) {
+	if (rayHit && validArea) {
 		cmd.func(vertices, vertIndicesAndDst);
 		((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX * m_numVertsY * sizeof(Vertex));
 	}
