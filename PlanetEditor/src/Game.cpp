@@ -1329,6 +1329,11 @@ void Game::imguiCommitWindow() {
 				EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 				mesh->updateData();
 				m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redo();
+				if (changes.size() > 0)
+					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+					m_editableMesh->doChanges(changes);
+				});
 				char bufMsg[128] = "";
 				strncpy_s(buf, bufMsg, 128);
 				m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
@@ -1356,7 +1361,6 @@ void Game::imguiCommitWindow() {
 
 		// Commit on this branch and overwrite the history after the current commit's index
 		if (ImGui::Button("Commit on this branch", ImVec2(180, 0))) {
-			m_bm.getCurrentBranch().resetCommandList();
 			// TODO: Can probably be done in a better way.
 			m_bm.getCurrentBranch().clearCommitsToIndex(m_currentCommitIndex);
 			//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
@@ -1364,6 +1368,11 @@ void Game::imguiCommitWindow() {
 			EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 			mesh->updateData();
 			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+			std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redo();
+			if (changes.size() > 0)
+				m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+				m_editableMesh->doChanges(changes);
+			});
 			char bufMsg[128] = "";
 			strncpy_s(buf, bufMsg, 128);
 			m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;

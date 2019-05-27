@@ -67,6 +67,8 @@ public:
 	std::vector<Command>& getCommands();
 	std::vector<Branch::Commit>& getCommits();
 	void resetCommandList();
+	void clearCommandsToIndex(unsigned int index);
+	void clearCommandsToCurrentCommandIndex();
 
 	const int getCommandIndex();
 

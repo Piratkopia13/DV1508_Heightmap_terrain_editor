@@ -40,7 +40,7 @@ void Branch::addCommand(Command cmd) {
 }
 
 void Branch::createCommit(const std::string & author, const std::string & message, EditableMesh * mesh) {
-	resetCommandList();
+	clearCommandsToCurrentCommandIndex();
 	m_commits.emplace_back(author, message, mesh);
 }
 
@@ -60,6 +60,23 @@ std::vector<Branch::Commit>& Branch::getCommits() {
 void Branch::resetCommandList() {
 	m_commandIndex = -1;
 	m_commands.clear();
+}
+
+void Branch::clearCommandsToIndex(unsigned int index) {
+	if (m_commands.size() > 0) {
+		if (index == m_commands.size() - 1)
+			resetCommandList();
+		else {
+			auto eraseTo = m_commands.begin();
+			eraseTo += index + 1;
+			m_commands.erase(m_commands.begin(), eraseTo);
+			m_commandIndex = -1;
+		}
+	}
+}
+
+void Branch::clearCommandsToCurrentCommandIndex() {
+	clearCommandsToIndex(m_commandIndex);
 }
 
 
