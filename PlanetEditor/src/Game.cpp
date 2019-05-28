@@ -125,13 +125,13 @@ void Game::init() {
 	texFiles2.emplace_back("../assets/textures/refract.png");
 	m_fenceTexArray->loadFromFiles(texFiles2);
 	{
-		m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 40, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 40 }, { 40, 0.1, 40}));
-		m_fence->getMesh()->technique = m_technique.get();
-		m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
-
-		m_meshes.emplace_back(m_fence->getMesh());
-		m_vertexBuffers.emplace_back(m_fence->getVertexBuffer());
-		m_indexBuffers.emplace_back(m_fence->getIndexBuffer());
+		//m_fence = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 40, 0.1, 0 }, { 0, 0.1, 0 }, { 0, 0.1, 40 }, { 40, 0.1, 40}));
+		//m_fence->getMesh()->technique = m_technique.get();
+		//m_fence->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+		//
+		//m_meshes.emplace_back(m_fence->getMesh());
+		//m_vertexBuffers.emplace_back(m_fence->getVertexBuffer());
+		//m_indexBuffers.emplace_back(m_fence->getIndexBuffer());
 	}
 	DX12Texture2DArray* fenceTexture2 = new DX12Texture2DArray(static_cast<DX12Renderer*>(&getRenderer()));
 	m_fence2TexArray = std::unique_ptr<DX12Texture2DArray>(fenceTexture2);
@@ -139,11 +139,11 @@ void Game::init() {
 	texFiles3.emplace_back("../assets/textures/reflect.png");
 	m_fence2TexArray->loadFromFiles(texFiles3);
 	{
-		m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }));
+		//m_fence2 = std::unique_ptr<Fence>(new Fence(m_dxRenderer, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }));
 		//m_fence2->updateVertexData({ 70, 0.1, 10 }, { 10, 0.1, 10 }, { 10, 0.1, 50 }, { 70, 0.1, 50 });
-		m_fence2->getMesh()->technique = m_technique.get();
-		m_fence2->getMesh()->setTexture2DArray(m_fence2TexArray.get());
-		m_meshes.emplace_back(m_fence2->getMesh());
+		//m_fence2->getMesh()->technique = m_technique.get();
+		//m_fence2->getMesh()->setTexture2DArray(m_fence2TexArray.get());
+		//m_meshes.emplace_back(m_fence2->getMesh());
 		//m_vertexBuffers.emplace_back(m_fence2->getVertexBuffer());
 		//m_indexBuffers.emplace_back(m_fence2->getIndexBuffer());
 	}
@@ -262,6 +262,12 @@ void Game::fixedUpdate(double dt) {
 
 void Game::render(double dt) {
 	// Submit rasterization meshes
+	m_meshes.clear();
+	m_meshes.push_back(m_editableMesh->getMesh());
+	for (int i = 0; i < 10; ++i)
+		if (m_fences[i]->render == true)
+			m_meshes.push_back(m_fences[i]->getMesh());
+
 	for (auto& mesh : m_meshes)
 		getRenderer().submit(mesh);
 	// Render frame with gui
@@ -821,6 +827,7 @@ void Game::imguiTimeline() {
 				nr_fences++;
 				for (int i = 0; i < nr_fences; ++i)
 					m_fences[i]->getMesh()->setTexture2DArray(m_fence2TexArray.get());
+				m_fences[nr_fences]->render = true;
 				m_meshes.emplace_back(m_fences[nr_fences]->getMesh());
 				m_fences[nr_fences]->getMesh()->setTexture2DArray(m_fenceTexArray.get());
 				m_dxRenderer->executeNextOpenCopyCommand([&] {
@@ -861,6 +868,7 @@ void Game::imguiTimeline() {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Merge", { 60,30 })) {
+			m_fences[m_bm.getIndex() - 1]->render = false;
 			m_bm.merge();
 			std::cout << "Merging...\n";
 		}
@@ -1486,6 +1494,8 @@ void Game::jumpToBranchIndex(unsigned int index) {
 
 	for (int i = 0; i < 10; ++i)
 		m_fences[i]->getMesh()->setTexture2DArray(m_fence2TexArray.get());
-	if (index > 0)
+	if (index > 0) {
 		m_fences[index - 1]->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+		m_fences[index - 1]->render = true;
+	}
 }
