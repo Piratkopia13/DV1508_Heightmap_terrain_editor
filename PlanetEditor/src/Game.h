@@ -129,6 +129,10 @@ private:
 	std::vector<Tool> m_tools;
 	BranchManager m_bm;
 	bool m_branching = false;
+
+	bool m_commitAfterBranch = false;
+	std::string m_commitMessage;
+
 	ImVec2 m_points[2];
 	XMFLOAT3 p1;
 	XMFLOAT3 p2;

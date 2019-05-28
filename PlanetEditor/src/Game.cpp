@@ -799,30 +799,32 @@ void Game::imguiTimeline() {
 			} else {
 				std::cout << "x: " << a.minX << " " << a.maxX << "\nz:" << a.minZ << " " << a.maxZ << "\n";
 
-				//if (m_bm.validArea(a)) {
+				if (m_commitAfterBranch) {
+					m_commitAfterBranch = false;
+					m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()), m_commitMessage);
+				} else {
 					m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
-					m_branching = false;
-					m_points[0] = ImVec2(0, 0);
-					m_points[1] = m_points[0];
-					p1 = { a.maxX, 0.1, a.minZ };
-					p2 = { a.minX, 0.1, a.minZ };
-					p3 = { a.minX, 0.1, a.maxZ };
-					p4 = { a.maxX, 0.1, a.maxZ };
-					nr_fences++;
-					for (int i = 0; i < nr_fences; ++i)
-						m_fences[i]->getMesh()->setTexture2DArray(m_fence2TexArray.get());
-					m_meshes.emplace_back(m_fences[nr_fences]->getMesh());
-					m_fences[nr_fences]->getMesh()->setTexture2DArray(m_fenceTexArray.get());
-					m_dxRenderer->executeNextOpenCopyCommand([&] {
-						m_fences[nr_fences]->updateVertexData(p1, p2, p3, p4);
-						//m_fences[m_fences.size() - 1]->updateVertexData(p1, p2, p3, p4);
-						//m_fence2->updateVertexData(p1, p2, p3, p4);
-						});
-				/*} else {
-					std::cout << "Invalid area" << std::endl;
-				}*/
+				}
+
+				m_branching = false;
+				m_points[0] = ImVec2(0, 0);
+				m_points[1] = m_points[0];
+				p1 = { a.maxX, 0.1, a.minZ };
+				p2 = { a.minX, 0.1, a.minZ };
+				p3 = { a.minX, 0.1, a.maxZ };
+				p4 = { a.maxX, 0.1, a.maxZ };
+				nr_fences++;
+				for (int i = 0; i < nr_fences; ++i)
+					m_fences[i]->getMesh()->setTexture2DArray(m_fence2TexArray.get());
+				m_meshes.emplace_back(m_fences[nr_fences]->getMesh());
+				m_fences[nr_fences]->getMesh()->setTexture2DArray(m_fenceTexArray.get());
+				m_dxRenderer->executeNextOpenCopyCommand([&] {
+					m_fences[nr_fences]->updateVertexData(p1, p2, p3, p4);
+				});
+
 				std::cout << "max X: " << a.maxX << " min X: " << a.minX << " max Z: " << a.maxZ << " min Z: " << a.minZ << std::endl;
 				str0[0] = '\0';
+
 			}
 		}
 		if (len == 0 || !areaSelected || !m_areaIsValid)
@@ -1177,23 +1179,6 @@ void Game::imguiBranchHistory() {
 		if(openPopup)
 			ImGui::OpenPopup("Warning! Commit Jump##1337");
 
-		if (m_jumpToCommitIndex == i) {
-			if (ImGui::BeginPopupModal("Warning! Commit Jump##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
-				ImGui::Text("Are you sure you want to jump to this commit? All uncommitted progress will be lost.");
-
-				if (ImGui::Button("Go to commit", ImVec2(120, 0))) {
-					jumpToCommitIndex(m_jumpToCommitIndex);
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SetItemDefaultFocus();
-				ImGui::EndPopup();
-			}
-		}
-
 		// Convert time to string
 		std::time_t time_c = std::chrono::system_clock::to_time_t(commit.date);
 		std::tm time_tm;
@@ -1207,13 +1192,34 @@ void Game::imguiBranchHistory() {
 	}
 	ImGui::Columns(1);
 	ImGui::Separator();
+
 	//ImGui::PopStyleVar();
 
 	int numCommits = m_bm.getCurrentBranch().getCommits().size();
 	int commitIndex = numCommits - m_currentCommitIndex - 1;
 	ImGui::SetCursorPos(ImVec2(15, 90));
 	if (ImGui::VSliderInt("##int", ImVec2(15, numCommits * 20 + 10), &commitIndex, 0, numCommits - 1)) {
-		jumpToCommitIndex(numCommits - commitIndex - 1);
+		m_jumpToCommitIndex = numCommits - commitIndex - 1;
+		if (m_bm.getCurrentBranch().getCommands().size() > 0) {
+			ImGui::OpenPopup("Warning! Commit Jump##1337");
+		} else {
+			jumpToCommitIndex(m_jumpToCommitIndex);
+		}
+	}
+
+	if (ImGui::BeginPopupModal("Warning! Commit Jump##1337", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+		ImGui::Text("Are you sure you want to jump to this commit? All uncommitted progress will be lost.");
+
+		if (ImGui::Button("Go to commit", ImVec2(120, 0))) {
+			jumpToCommitIndex(m_jumpToCommitIndex);
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SetItemDefaultFocus();
+		ImGui::EndPopup();
 	}
 
 	ImGui::End();
@@ -1381,8 +1387,11 @@ void Game::imguiCommitWindow() {
 		ImGui::SameLine(); 
 		// Commit on new branch
 		if (ImGui::Button("Commit on new branch", ImVec2(180, 0))) {
-			// TODO: Implement
+			m_branching = true;
+			m_commitAfterBranch = true;
+			m_commitMessage = buf;
 			ImGui::CloseCurrentPopup();
+			buf[0] = '\0';
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel", ImVec2(120, 0)) || ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Escape))) {

@@ -28,7 +28,7 @@ public:
 	void merge();
 
 
-	const bool createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh);
+	const bool createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh, std::string commitMsg = "Branch created");
 	const bool setBranch(size_t index);
 	const bool setBranch(std::string name);
 
