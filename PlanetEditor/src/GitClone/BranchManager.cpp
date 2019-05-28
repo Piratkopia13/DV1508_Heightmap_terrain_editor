@@ -66,7 +66,7 @@ bool BranchManager::validArea(Area a) {
 }
 
 const bool BranchManager::canMerge() {
-	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0 && m_branches[m_index].isActive();
+	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0 && m_branches[m_index].isActive() && m_branches[m_index].commitSize() > 1;
 }
 
 void BranchManager::merge() {

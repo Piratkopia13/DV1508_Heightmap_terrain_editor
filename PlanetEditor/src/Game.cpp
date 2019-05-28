@@ -196,8 +196,10 @@ void Game::update(double dt) {
 		}
 		if (m_cursorInScene) {
 			ImGuiIO& io = ImGui::GetIO();
-			if (ImGui::IsMouseClicked(0, false))
+			if (ImGui::IsMouseClicked(0, false)) {
 				m_points[0] = io.MousePos;
+				m_points[1] = m_points[0];
+			}
 			if (Input::IsMouseButtonDown(Input::MouseButton::LEFT)) {
 				m_points[1] = io.MousePos;
 			}
@@ -1444,14 +1446,14 @@ void Game::imguiMasterBranchCommandsWarning() {
 Area Game::calcualteArea() {
 	Area result;
 	float width = m_sceneWindow.maxX - m_sceneWindow.minX;//m_dxRenderer->getWindow()->getWindowWidth();
-	float height = m_sceneWindow.maxZ - m_sceneWindow.minZ;//m_dxRenderer->getWindow()->getWindowHeight();
+	float height = 785 - m_sceneWindow.minZ;//m_dxRenderer->getWindow()->getWindowHeight();
 	XMMATRIX invVP = m_aboveCamera->getInvProjMatrix() * m_aboveCamera->getInvViewMatrix();
 	float x = m_points[0].x;
 	x /= width;
 	x *= 2.f;
 	x -= 1.f;
 	float y = m_points[0].y;
-	y -= 123;
+	y -= 102;
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;
@@ -1464,7 +1466,7 @@ Area Game::calcualteArea() {
 	x *= 2.f;
 	x -= 1.f;
 	y = m_points[1].y;
-	y -= 123;
+	y -= 102;
 	y /= height;
 	y *= 2.f;
 	y = 1.f - y;

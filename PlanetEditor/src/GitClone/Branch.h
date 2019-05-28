@@ -84,6 +84,7 @@ public:
 
 	void merge() { m_active = false; }
 	bool isActive() { return m_active; }
+	int commitSize() { return m_commits.size(); }
 
 
 

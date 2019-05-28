@@ -134,7 +134,7 @@ private:
 	bool m_commitAfterBranch = false;
 	std::string m_commitMessage;
 
-	ImVec2 m_points[2];
+	ImVec2 m_points[2] = { {0,0}, {0,0} };
 	XMFLOAT3 p1;
 	XMFLOAT3 p2;
 	XMFLOAT3 p3;
