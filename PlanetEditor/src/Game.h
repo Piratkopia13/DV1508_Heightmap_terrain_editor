@@ -78,6 +78,7 @@ private:
 private:
 	float m_toolWidth;
 	float m_toolStrength;
+	std::string m_name;
 
 	int m_historyWarning;
 	bool m_historyWarningShow;

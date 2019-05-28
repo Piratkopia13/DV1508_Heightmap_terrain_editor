@@ -354,7 +354,7 @@ void Game::imguiInit() {
 	m_showingToolOptions = true;
 	m_showingTimelineGraph = true;
 	m_showingBranchHistory = true;
-
+	m_name = "GlassBengan";
 
 	m_sceneWindow = { 0,0,1,1 };
 
@@ -707,6 +707,7 @@ void Game::imguiTopBarWindows() {
 }
 
 void Game::imguiSettingsWindow() {
+	static char buf[128] = "";
 
 	if (m_showingSettings) {
 		if (ImGui::Begin("SETTINGS OF THINGS", &m_showingSettings, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -716,8 +717,10 @@ void Game::imguiSettingsWindow() {
 			//ImGui::Text("Max unsaved commands before warning"); 
 			ImGui::Checkbox("Enable tool help", &m_toolHelpText);
 
-
-			//ImGui::Text("PATH: if time exists, include native window folder selection window thing");
+			strncpy_s(buf, m_name.c_str(), m_name.size());
+			bool done = ImGui::InputTextWithHint("##NameInput", "User Name", buf, IM_ARRAYSIZE(buf));
+			m_name = buf;
+			ImGui::Text(m_name.c_str());
 		}
 		ImGui::End();
 
@@ -1301,7 +1304,7 @@ void Game::imguiNewBranchWindow() {
 			//	//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
 			//	EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 			//	mesh->updateData();
-			//	m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+			//	m_bm.getCurrentBranch().createCommit(m_name.c_str(), buf, mesh);
 			//	char bufMsg[128] = "";
 			//	strncpy_s(buf, bufMsg, 128);
 			//	m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
@@ -1334,7 +1337,7 @@ void Game::imguiCommitWindow() {
 				//EditableMesh* mesh = new EditableMesh(*m_editableMesh.get());
 				EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 				mesh->updateData();
-				m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+				m_bm.getCurrentBranch().createCommit(m_name.c_str(), buf, mesh);
 				std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redo();
 				if (changes.size() > 0)
 					m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
@@ -1373,7 +1376,7 @@ void Game::imguiCommitWindow() {
 			// TODO: EditableMesh gets deleted due to vector size increment - why?
 			EditableMesh* mesh = new EditableMesh(*m_editableMesh);
 			mesh->updateData();
-			m_bm.getCurrentBranch().createCommit("Author-Person-Lol", buf, mesh);
+			m_bm.getCurrentBranch().createCommit(m_name.c_str(), buf, mesh);
 			std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().redo();
 			if (changes.size() > 0)
 				m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
