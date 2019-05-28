@@ -224,8 +224,9 @@ void EditableMesh::updateSubArea(EditableMesh* e, Area area) {
 			vertices[y * m_numVertsX + x] = e->vertices[y * m_numVertsX + x];
 		}
 	}
-	((DX12VertexBuffer*)m_vertexBuffer.get())->setData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex), 0);
-	((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex));
+	//((DX12VertexBuffer*)m_vertexBuffer.get())->setData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex), 0);
+	//((DX12VertexBuffer*)m_vertexBuffer.get())->updateData(vertices, m_numVertsX* m_numVertsY * sizeof(Vertex));
+	updateData();
 }
 
 // TODO: Move to utility functions
