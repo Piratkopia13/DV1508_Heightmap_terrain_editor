@@ -735,7 +735,7 @@ void Game::imguiTimeline() {
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.f, 10.f));
 
-	ImGui::Text("Timeline things", &m_showingTimeline);
+	//ImGui::Text("Timeline things", &m_showingTimeline);
 	/*std::string text = "Things here " ICON_FA_PLUS;
 	auto width = ImGui::CalcTextSize(text.c_str());
 	ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvailWidth() - width.x, ImGui::GetCursorPosY()));
