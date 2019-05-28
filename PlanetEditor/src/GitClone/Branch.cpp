@@ -31,7 +31,7 @@ Area Branch::getArea() const {
 
 void Branch::addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition) {
 	m_commandIndex++;
-	m_commands.push_back({tool, params, newPosition});
+	m_commands.insert(m_commands.begin() + m_commandIndex, {tool, params, newPosition});
 }
 
 void Branch::addCommand(Command cmd) {
@@ -108,7 +108,7 @@ std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::redo() {
 	return std::vector<std::pair<unsigned int, XMFLOAT3>>();
 }
 
-std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::undoTo(size_t index) {
+std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::undoTo(int index) {
 	if (index == m_commandIndex)
 		return std::vector<std::pair<unsigned int, XMFLOAT3>>();
 	std::vector<std::pair<unsigned int, XMFLOAT3>> sum;
@@ -122,7 +122,7 @@ std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::undoTo(size_t index) {
 	return sum;
 }
 
-std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::redoTo(size_t index) {
+std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::redoTo(int index) {
 	if (index == m_commandIndex)
 		return std::vector<std::pair<unsigned int, XMFLOAT3>>();
 	std::vector<std::pair<unsigned int, XMFLOAT3>> sum;
@@ -133,6 +133,11 @@ std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::redoTo(size_t index) {
 	}
 
 	return sum;
+}
+
+std::vector<std::pair<unsigned int, XMFLOAT3>> Branch::reset() {
+	m_commandIndex = -1;
+	return redoTo(m_commands.size() - 1);
 }
 
 void Branch::setCurrentCommand(Command& c) {
