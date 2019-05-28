@@ -98,8 +98,7 @@ const bool BranchManager::setBranch(size_t index) {
 const bool BranchManager::setBranch(std::string name) {
 	for(int i = 0; i < m_branches.size(); i++) {
 		if (m_branches[i].getName() == name) {
-			m_index = i;
-			return true;
+			return setBranch(i);
 		}
 	}
 	return false;

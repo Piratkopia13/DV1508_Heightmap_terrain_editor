@@ -1467,10 +1467,16 @@ void Game::jumpToCommitIndex(unsigned int index) {
 
 void Game::jumpToBranchIndex(unsigned int index) {
 	m_bm.setBranch(index);
+
 	m_dxRenderer->executeNextOpenCopyCommand([&] {
 		m_editableMesh->setVertexData(m_bm.getCurrentBranch().getCommits()[m_bm.getCurrentBranch().getCommits().size() - 1].mesh->getVertices());
 	});
 	m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
+	std::vector<std::pair<unsigned int, XMFLOAT3>> changes = m_bm.getCurrentBranch().reset();
+	if (changes.size() > 0)
+		m_dxRenderer->executeNextOpenCopyCommand([&, changes] {
+		m_editableMesh->doChanges(changes);
+	});
 
 	for (int i = 0; i < 10; ++i)
 		m_fences[i]->getMesh()->setTexture2DArray(m_fence2TexArray.get());

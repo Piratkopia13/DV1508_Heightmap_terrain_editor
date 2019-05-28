@@ -74,8 +74,9 @@ public:
 
 	std::vector<std::pair<unsigned int, XMFLOAT3>> undo();
 	std::vector<std::pair<unsigned int, XMFLOAT3>> redo();
-	std::vector<std::pair<unsigned int, XMFLOAT3>> undoTo(size_t index);
-	std::vector<std::pair<unsigned int, XMFLOAT3>> redoTo(size_t index);
+	std::vector<std::pair<unsigned int, XMFLOAT3>> undoTo(int index);
+	std::vector<std::pair<unsigned int, XMFLOAT3>> redoTo(int index);
+	std::vector<std::pair<unsigned int, XMFLOAT3>> reset();
 	void setCurrentCommand(Command& c);
 	void setCurrentCommand(int index);
 	const bool isCurrentCommand(const Command& c);
