@@ -861,8 +861,11 @@ void Game::imguiTimeline() {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Merge", { 60,30 })) {
+			auto& b = m_bm.getCurrentBranch();
+			m_mergeCommits.push_back({ b.getName(), b.getParent()->getName() });
 			m_bm.merge();
-			std::cout << "Merging...\n";
+			jumpToBranchIndex(m_bm.getIndexOf(b.getParent()->getName()));
+			//std::cout << "Merging...\n";
 		}
 		if (cant_merge)
 		{
@@ -1008,10 +1011,13 @@ void Game::imguiGraph() {
 			std::string parentName = (branch.getParent()) ? branch.getParent()->getName() : "";
 			firstAndLast.emplace_back(branch.getName(), commits[0].date, true, parentName);
 		}
-		if (commits.size() > 1) {
+		if (commits.size() > 1 && branch.getParent()) {
 			firstAndLast.emplace_back(branch.getName(), commits[commits.size() - 1].date, false, "");
 		}
 	}
+	for (auto& c : m_mergeCommits)
+		firstAndLast.emplace_back(c.branchName, c.date, false, c.parentBranchName);
+
 	std::sort(firstAndLast.begin(), firstAndLast.end(), [](const SortableDrawCommit& lhs, const SortableDrawCommit& rhs) {
 		return lhs.date < rhs.date;
 	});
@@ -1020,8 +1026,11 @@ void Game::imguiGraph() {
 		if (drawCommit.newBranch && drawCommit.branchName != "Master") {
 			commits.push_back({ drawCommit.parentBranchName, COMMAND, "" });
 			commits.push_back({ drawCommit.branchName, NEWBRANCH, drawCommit.parentBranchName });
-		} else {
+		} else if (drawCommit.parentBranchName.size() == 0) {
 			commits.push_back({ drawCommit.branchName, COMMAND, "" });
+		}
+		else {
+			commits.push_back({ drawCommit.branchName, MERGE, drawCommit.parentBranchName });
 		}
 	}
 

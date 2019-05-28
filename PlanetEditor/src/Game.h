@@ -139,4 +139,18 @@ private:
 	XMFLOAT3 p2;
 	XMFLOAT3 p3;
 	XMFLOAT3 p4;
+
+
+	struct MergeDrawCommit {
+		std::string branchName;
+		std::chrono::system_clock::time_point date;
+		std::string parentBranchName;
+
+		MergeDrawCommit(std::string name, std::string pBranchName) {
+			branchName = name;
+			parentBranchName = pBranchName;
+			date = std::chrono::system_clock::now();
+		}
+	};
+	std::vector<MergeDrawCommit> m_mergeCommits;
 };
