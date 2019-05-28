@@ -806,6 +806,8 @@ void Game::imguiTimeline() {
 					m_bm.createBranch(str0, a, &m_bm.getCurrentBranch(), new EditableMesh(*m_editableMesh.get()));
 				}
 
+				m_currentCommitIndex = m_bm.getCurrentBranch().getCommits().size() - 1;
+
 				m_branching = false;
 				m_points[0] = ImVec2(0, 0);
 				m_points[1] = m_points[0];
