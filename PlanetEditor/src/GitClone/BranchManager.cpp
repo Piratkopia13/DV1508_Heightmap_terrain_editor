@@ -77,7 +77,7 @@ void BranchManager::merge() {
 	c = cs[cs.size() - 1];
 	e->updateSubArea((c.mesh).get(), getCurrentArea());
 
-	parent->createCommit(c.author, "Merge", e);
+	parent->createCommit(c.author, "Merge from " + getCurrentBranch().getName(), e);
 }
 
 const bool BranchManager::createBranch(const std::string& name, const Area& area, Branch* parent, EditableMesh* initalMesh, std::string commitMsg) {

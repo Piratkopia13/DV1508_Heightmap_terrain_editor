@@ -987,8 +987,9 @@ void Game::imguiGraph() {
 		std::string branchName;
 		std::chrono::system_clock::time_point date;
 		bool newBranch;
+		bool merge;
 		std::string parentBranchName;
-		SortableDrawCommit(const std::string& branchName, std::chrono::system_clock::time_point& date, bool newBranch, const std::string& parentBranchName) 
+		SortableDrawCommit(const std::string& branchName, std::chrono::system_clock::time_point& date, bool newBranch, const std::string& parentBranchName, bool merge = false) 
 		: branchName(branchName)
 		 , date(date)
 		 , newBranch(newBranch)
@@ -1005,6 +1006,12 @@ void Game::imguiGraph() {
 		if (commits.size() > 1) {
 			firstAndLast.emplace_back(branch.getName(), commits[commits.size() - 1].date, false, "");
 		}
+		for (auto commit : commits) {
+			if (commit.message.find("Merge") != std::string::npos) {
+				std::string mergeFrom = commit.message.substr(11);
+				firstAndLast.emplace_back(mergeFrom, commit.date, false, branch.getName(), true);
+			}
+		}
 	}
 	std::sort(firstAndLast.begin(), firstAndLast.end(), [](const SortableDrawCommit& lhs, const SortableDrawCommit& rhs) {
 		return lhs.date < rhs.date;
@@ -1014,6 +1021,8 @@ void Game::imguiGraph() {
 		if (drawCommit.newBranch && drawCommit.branchName != "Master") {
 			commits.push_back({ drawCommit.parentBranchName, COMMAND, "" });
 			commits.push_back({ drawCommit.branchName, NEWBRANCH, drawCommit.parentBranchName });
+		} else if (drawCommit.merge) {
+			commits.push_back({ drawCommit.branchName, MERGE, drawCommit.parentBranchName });
 		} else {
 			commits.push_back({ drawCommit.branchName, COMMAND, "" });
 		}
@@ -1075,14 +1084,18 @@ void Game::imguiGraph() {
 			}
 			else if (commit.type == MERGE) {
 				BranchDrawInfo otherBranch = activeBranches[commit.otherBranch];
-				float otherY = p.y + otherBranch.yOffset;
+				//float otherY = p.y + otherBranch.yOffset;
 				y = p.y + otherBranch.yOffset;
 				// Draw horizontal line on branch merged into
-				drawlist->AddLine(ImVec2(otherBranch.lastCommitX, y), ImVec2(x, y), otherBranch.color, 3.0f);
+				//drawlist->AddLine(ImVec2(otherBranch.lastCommitX, y), ImVec2(x, y), otherBranch.color, 3.0f);
+
 				circleColor = otherBranch.color;
 			}
 			drawlist->AddLine(ImVec2(lastX, lastY), ImVec2(x, y), info.color, (m_bm.getCurrentBranch().getName() == commit.branchName) ? 6.0f : 3.0f);
 			info.lastCommitX = x;
+			if (commit.type == MERGE) {
+				y = lastY;
+			}
 		}
 		drawlist->AddCircleFilled(ImVec2(x, y), commitRadius, circleColor);
 		maxCoord.x = x;
