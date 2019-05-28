@@ -354,7 +354,7 @@ void Game::imguiInit() {
 	m_showingToolOptions = true;
 	m_showingTimelineGraph = true;
 	m_showingBranchHistory = true;
-	m_name = "GlassBengan";
+	m_name = "Sas-Nicklas";
 
 	m_sceneWindow = { 0,0,1,1 };
 
