@@ -31,7 +31,7 @@ Area Branch::getArea() const {
 
 void Branch::addCommand(Tool* tool, Command::Parameters params, std::vector<std::pair<unsigned int, XMFLOAT3>> newPosition) {
 	m_commandIndex++;
-	m_commands.push_back({tool, params, newPosition});
+	m_commands.insert(m_commands.begin() + m_commandIndex, {tool, params, newPosition});
 }
 
 void Branch::addCommand(Command cmd) {
