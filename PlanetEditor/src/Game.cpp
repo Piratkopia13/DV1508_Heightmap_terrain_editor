@@ -484,7 +484,7 @@ void Game::imguiFunc() {
 	if (m_showingSettings)
 		imguiSettingsWindow();
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
 	// Scene window
 	static ImVec2 size = ImVec2(400, 400);
@@ -1198,7 +1198,7 @@ void Game::imguiBranchHistory() {
 	int numCommits = m_bm.getCurrentBranch().getCommits().size();
 	int commitIndex = numCommits - m_currentCommitIndex - 1;
 	ImGui::SetCursorPos(ImVec2(15, 90));
-	if (ImGui::VSliderInt("##int", ImVec2(15, numCommits * 20 + 10), &commitIndex, 0, numCommits - 1)) {
+	if (ImGui::VSliderInt("##int", ImVec2(15, numCommits * 21 + 10), &commitIndex, 0, numCommits - 1, "")) {
 		m_jumpToCommitIndex = numCommits - commitIndex - 1;
 		if (m_bm.getCurrentBranch().getCommands().size() > 0) {
 			ImGui::OpenPopup("Warning! Commit Jump##1337");
@@ -1420,8 +1420,8 @@ void Game::imguiMasterBranchCommandsWarning() {
 
 Area Game::calcualteArea() {
 	Area result;
-	float width = 1700;//m_dxRenderer->getWindow()->getWindowWidth();
-	float height = 537;//m_dxRenderer->getWindow()->getWindowHeight();
+	float width = m_sceneWindow.maxX - m_sceneWindow.minX;//m_dxRenderer->getWindow()->getWindowWidth();
+	float height = m_sceneWindow.maxZ - m_sceneWindow.minZ;//m_dxRenderer->getWindow()->getWindowHeight();
 	XMMATRIX invVP = m_aboveCamera->getInvProjMatrix() * m_aboveCamera->getInvViewMatrix();
 	float x = m_points[0].x;
 	x /= width;
