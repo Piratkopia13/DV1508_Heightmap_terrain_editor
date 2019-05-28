@@ -82,6 +82,9 @@ public:
 	const bool isCurrentCommand(const Command& c);
 	const bool isCurrentCommand(int index);
 
+	void merge() { m_active = false; }
+	bool isActive() { return m_active; }
+
 
 
 private:
@@ -94,5 +97,6 @@ private:
 	std::vector<Commit> m_commits;
 
 	int m_commandIndex;
+	bool m_active = true;
 };
 

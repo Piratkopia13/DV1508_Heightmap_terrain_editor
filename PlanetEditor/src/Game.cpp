@@ -853,7 +853,8 @@ void Game::imguiTimeline() {
 		//imguiNewBranchWindow();
 
 		// Make Merge button faded if it isn't possible to merge
-		if (!m_bm.canMerge())
+		bool cant_merge = !m_bm.canMerge();
+		if (cant_merge)
 		{
 			ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
@@ -863,7 +864,7 @@ void Game::imguiTimeline() {
 			m_bm.merge();
 			std::cout << "Merging...\n";
 		}
-		if (!m_bm.canMerge())
+		if (cant_merge)
 		{
 			ImGui::PopItemFlag();
 			ImGui::PopStyleVar();

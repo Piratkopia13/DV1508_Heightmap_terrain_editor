@@ -52,6 +52,8 @@ bool BranchManager::validArea(Area a) {
 	for (int i = 1; i < m_branches.size(); ++i) {
 		if (i == m_index)
 			continue;
+		if (!m_branches[i].isActive())
+			continue;
 
 		Area temp = m_branches[i].getArea();
 		if (!(a.maxX < temp.minX || a.minX > temp.maxX || a.minZ > temp.maxZ || a.maxZ < temp.minZ))
@@ -64,10 +66,11 @@ bool BranchManager::validArea(Area a) {
 }
 
 const bool BranchManager::canMerge() {
-	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0;
+	return m_branches[m_index].getParent() && m_branches[m_index].getCommands().size() == 0 && m_branches[m_index].isActive();
 }
 
 void BranchManager::merge() {
+	getCurrentBranch().merge();
 	auto parent = m_branches[m_index].getParent();
 	auto cs = parent->getCommits();
 	auto c = cs[cs.size() - 1];
